@@ -17,7 +17,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -32,21 +35,62 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("fetchBlock called")
-	},
+	Run: run,
 }
 
 func init() {
 	blockCmd.AddCommand(blockFetchCmd)
+	blockFetchCmd.Flags().Uint32P("seqno", "s", 0, "Block seqno")
+	blockFetchCmd.Flags().Int32P("workchain", "w", -1, "Workchain")
+	blockFetchCmd.Flags().StringP("output-format", "f", "hex", "Output format: json, bin, hex")
+	blockFetchCmd.MarkFlagRequired("seqno")
+}
 
-	// Here you will define your flags and configuration settings.
+func run(cmd *cobra.Command, args []string) {
+	outputFormat, err := cmd.Flags().GetString("output-format")
+	if err != nil {
+		panic(err)
+	}
+	workchain, err := cmd.Flags().GetInt32("workchain")
+	if err != nil {
+		panic(err)
+	}
+	seqno, err := cmd.Flags().GetUint32("seqno")
+	if err != nil {
+		panic(err)
+	}
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// blockFetchCmd.PersistentFlags().String("foo", "", "A help for foo")
+	blockIDExt, err := tonClient.API.LookupBlock(context.Background(), workchain, 0, seqno)
+	if err != nil {
+		panic(err)
+	}
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// blockFetchCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	switch outputFormat {
+	case "json":
+		block, err := tonClient.API.GetBlockData(context.Background(), blockIDExt)
+		if err != nil {
+			panic(err)
+		}
+		blockJSON, err := json.MarshalIndent(block, "", "  ")
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("%s\n", blockJSON)
+
+	case "hex":
+		blockBOC, err := tonClient.GetBlockBOC(context.Background(), blockIDExt)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("%x\n", blockBOC)
+
+	case "bin":
+		fallthrough
+	default:
+		blockBOC, err := tonClient.GetBlockBOC(context.Background(), blockIDExt)
+		if err != nil {
+			panic(err)
+		}
+		os.Stdout.Write(blockBOC)
+	}
 }
