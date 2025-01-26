@@ -1,54 +1,95 @@
-# Trustless Bridge Utility Suite
+# Trustless Bridge CLI
 
-This project is a suite of command-line utilities designed to interact with a trustless bridge. It provides tools for fetching and processing blockchain data.
+A set of command-line tools for interacting with a **trustless bridge** in the TON blockchain. This project includes utilities for fetching, processing, and verifying blockchain data.
 
 ## Features
 
-- **Fetch Block**: Retrieve a block from the blockchain using its seqno and workchain ID. Supports output in JSON, binary, or hexadecimal formats.
-- **Prune Block**: Remove unnecessary data from a blockchain block to reduce its size. Supports output in binary or hexadecimal formats.
+- **Fetch Block**  
+  Retrieves a block from the blockchain by its `seqno` and `workchain`. Supports output in `json`, `bin`, or `hex` format.
+
+- **Prune Block**  
+  Removes unnecessary data from a block to reduce its size. Supports output in `bin` or `hex` format.
+
+- **Block Proof**  
+  Generates a proof of block BOC loaded from a specified file. Supports output in `bin` or `hex` format.
 
 ## Configuration
 
-The application uses a configuration file to set up necessary parameters. By default, it looks for a file named `.trustless-bridge-cli.yaml` in the user's home directory. The configuration file should include the following:
+By default, the utilities look for a configuration file named `.trustless-bridge-cli.yaml` in the user's home directory.
+
+Below is a typical configuration file example:
 
 ```yaml
 ton_config_url: "https://ton-blockchain.github.io/testnet-global.config.json"
 ```
 
-This URL is used to configure the TON client with the necessary blockchain settings.
+This `ton_config_url` configures the TON client with the necessary blockchain settings.
 
-## Documentation
+## Installation
 
-The CLI provides built-in help documentation. You can access it by using the `--help` flag with any command. For example:
+Make sure you have Go installed (version 1.23.1 or later).
 
-```bash
-go run main.go block --help
-```
+1. **Clone the Repository**
+
+   ```bash
+   git clone https://github.com/RSquad/trustless-bridge-cli.git
+   cd trustless-bridge-cli
+   ```
+
+2. **Build the Project**
+
+   ```bash
+   go build -o trustless-bridge-cli main.go
+   ```
+
+   This command compiles the project into an executable named `trustless-bridge-cli` in the current directory.
+
+3. **Install into Go Workspace (Optional)**
+
+   To install the CLI into your `$GOPATH/bin`, run:
+
+   ```bash
+   go install
+   ```
+
+   Once installed, you can call the CLI from any terminal session without specifying the path.
 
 ## Usage
 
-To run the utility, use the `go run` command:
+### Running the CLI
+
+After building or installing, you can run the utility:
 
 ```bash
-go run main.go block fetch --s <seqno> --w <workchain> --f <output-format>
+trustless-bridge-cli block fetch -s <seqno> -w <workchain> -f <output-format>
 ```
 
-Replace `<seqno>`, `<workchain>`, and `<output-format>` with the desired block sequence number, workchain ID, and output format (`json`, `bin`, or `hex`), respectively.
+Where:
 
-To prune a block, use the following command:
+- `<seqno>` is the block's sequence number.
+- `<workchain>` is the workchain ID.
+- `<output-format>` can be `json`, `bin`, or `hex`.
+
+Alternatively, you can run it directly with `go run` (no need to build beforehand):
 
 ```bash
-go run main.go block prune --i <input-file> --f <output-format>
+go run main.go block fetch -s <seqno> -w <workchain> -f <output-format>
 ```
 
-Replace `<input-file>` with the path to the block file you want to prune and `<output-format>` with the desired output format (`bin` or `hex`).
+### Saving Output to a File
 
-## Building
-
-To build the project, use the following command:
+Use standard shell redirection to save output to a file. For example:
 
 ```bash
-go build -o trustless-bridge-cli main.go
+go run main.go block fetch -s 27450812 -f bin > block.boc
 ```
 
-This will create an executable named `trustless-bridge-cli` that you can run with the same options as above.
+This fetches the block with sequence number 27450812 in binary format and writes it to `block.boc`.
+
+### Help Flags
+
+To view help for any command, use `--help`. For example:
+
+```bash
+trustless-bridge-cli block --help
+```
