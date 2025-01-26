@@ -26,11 +26,8 @@ import (
 
 var blockPruneCmd = &cobra.Command{
 	Use:   "prune",
-	Short: "Prune unnecessary data from a blockchain block",
-	Long: `Prune a block to remove unnecessary data, reducing its size.
-This command processes the block data from the specified input file and outputs
-the pruned block in the desired format. Supported output formats are binary and hexadecimal.`,
-	Run: runBlockPrune,
+	Short: "Prune a block to remove unnecessary data",
+	Run:   runBlockPrune,
 }
 
 func init() {

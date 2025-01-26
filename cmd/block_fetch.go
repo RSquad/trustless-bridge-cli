@@ -27,10 +27,8 @@ import (
 
 var blockFetchCmd = &cobra.Command{
 	Use:   "fetch",
-	Short: "Fetch a block from the blockchain using its seqno",
-	Long: `Fetch a block from the blockchain by specifying the seqno and workchain.
-You can choose the output format as JSON, binary, or hexadecimal.`,
-	Run: runBlockFetch,
+	Short: "Fetch a block using its seqno",
+	Run:   runBlockFetch,
 }
 
 func init() {

@@ -27,10 +27,7 @@ import (
 var blockProofCmd = &cobra.Command{
 	Use:   "proof",
 	Short: "Generate a proof for a block",
-	Long: `Generate a proof for a block from the specified input file.
-This command processes the block data and outputs the proof in the desired format.
-Supported output formats are binary and hexadecimal.`,
-	Run: runBlockProof,
+	Run:   runBlockProof,
 }
 
 func init() {
