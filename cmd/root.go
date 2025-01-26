@@ -20,11 +20,13 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/rsquad/trustless-bridge-cli/internal/tonclient"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var cfgFile string
+var tonClient *tonclient.TonClient
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -66,6 +68,8 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	viper.SetDefault("ton_config_url", "https://ton-blockchain.github.io/testnet-global.config.json")
+
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
@@ -85,5 +89,16 @@ func initConfig() {
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	}
+
+	tonClientURL := viper.GetString("ton_config_url")
+	if tonClientURL == "" {
+		panic("TonClient URL not set in config")
+	}
+
+	var err error
+	tonClient, err = tonclient.NewTonClient(tonClientURL)
+	if err != nil {
+		panic(err)
 	}
 }
