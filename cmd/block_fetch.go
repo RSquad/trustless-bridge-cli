@@ -30,7 +30,7 @@ var blockFetchCmd = &cobra.Command{
 	Short: "Fetch a block from the blockchain using its seqno",
 	Long: `Fetch a block from the blockchain by specifying the seqno and workchain.
 You can choose the output format as JSON, binary, or hexadecimal.`,
-	Run: run,
+	Run: runBlockFetch,
 }
 
 func init() {
@@ -41,7 +41,7 @@ func init() {
 	blockFetchCmd.MarkFlagRequired("seqno")
 }
 
-func run(cmd *cobra.Command, args []string) {
+func runBlockFetch(cmd *cobra.Command, args []string) {
 	outputFormat, err := cmd.Flags().GetString("output-format")
 	if err != nil {
 		panic(err)

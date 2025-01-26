@@ -5,6 +5,7 @@ This project is a suite of command-line utilities designed to interact with a tr
 ## Features
 
 - **Fetch Block**: Retrieve a block from the blockchain using its seqno and workchain ID. Supports output in JSON, binary, or hexadecimal formats.
+- **Prune Block**: Remove unnecessary data from a blockchain block to reduce its size. Supports output in binary or hexadecimal formats.
 
 ## Configuration
 
@@ -29,10 +30,18 @@ go run main.go block --help
 To run the utility, use the `go run` command:
 
 ```bash
-go run main.go block fetch --s <seqno> --w <workchain> --f <format>
+go run main.go block fetch --s <seqno> --w <workchain> --f <output-format>
 ```
 
-Replace `<seqno>`, `<workchain>`, and `<format>` with the desired block sequence number, workchain ID, and output format (`json`, `bin`, or `hex`), respectively.
+Replace `<seqno>`, `<workchain>`, and `<output-format>` with the desired block sequence number, workchain ID, and output format (`json`, `bin`, or `hex`), respectively.
+
+To prune a block, use the following command:
+
+```bash
+go run main.go block prune --i <input-file> --f <output-format>
+```
+
+Replace `<input-file>` with the path to the block file you want to prune and `<output-format>` with the desired output format (`bin` or `hex`).
 
 ## Building
 
