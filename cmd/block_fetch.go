@@ -25,16 +25,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// blockFetchCmd represents the fetchBlock command
 var blockFetchCmd = &cobra.Command{
 	Use:   "fetch",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Fetch a block from the blockchain using its seqno",
+	Long: `Fetch a block from the blockchain by specifying the seqno and workchain.
+You can choose the output format as JSON, binary, or hexadecimal.`,
 	Run: run,
 }
 
