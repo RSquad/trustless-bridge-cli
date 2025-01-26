@@ -55,19 +55,18 @@ func runBlockPrune(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	blockProof, err := blockutils.PruneBlock(blockBOC)
+	prunedBlock, err := blockutils.PruneBlock(blockBOC)
 	if err != nil {
 		panic(err)
 	}
 
 	switch outputFormat {
 	case "hex":
-		fmt.Printf("%x\n", blockProof.ToBOC())
+		fmt.Printf("%x\n", prunedBlock.ToBOC())
 
 	case "bin":
 		fallthrough
 	default:
-		os.Stdout.Write(blockProof.ToBOC())
+		os.Stdout.Write(prunedBlock.ToBOC())
 	}
-
 }

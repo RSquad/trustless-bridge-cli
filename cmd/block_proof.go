@@ -18,35 +18,55 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/rsquad/trustless-bridge-cli/internal/blockutils"
 	"github.com/spf13/cobra"
 )
 
-// blockProofCmd represents the proofBlock command
 var blockProofCmd = &cobra.Command{
 	Use:   "proof",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("proofBlock called")
-	},
+	Short: "Generate a proof for a block",
+	Long: `Generate a proof for a block from the specified input file.
+This command processes the block data and outputs the proof in the desired format.
+Supported output formats are binary and hexadecimal.`,
+	Run: runBlockProof,
 }
 
 func init() {
 	blockCmd.AddCommand(blockProofCmd)
+	blockProofCmd.Flags().StringP("input-file", "i", "", "Input file")
+	blockProofCmd.Flags().StringP("output-format", "f", "bin", "Output format: bin, hex")
+	blockProofCmd.MarkFlagRequired("input-file")
+}
 
-	// Here you will define your flags and configuration settings.
+func runBlockProof(cmd *cobra.Command, args []string) {
+	inputFile, err := cmd.Flags().GetString("input-file")
+	if err != nil {
+		panic(err)
+	}
+	outputFormat, err := cmd.Flags().GetString("output-format")
+	if err != nil {
+		panic(err)
+	}
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// blockProofCmd.PersistentFlags().String("foo", "", "A help for foo")
+	blockBOC, err := os.ReadFile(inputFile)
+	if err != nil {
+		panic(err)
+	}
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// blockProofCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	blockProof, err := blockutils.BuildBlockProof(blockBOC)
+	if err != nil {
+		panic(err)
+	}
+
+	switch outputFormat {
+	case "hex":
+		fmt.Printf("%x\n", blockProof.ToBOC())
+
+	case "bin":
+		fallthrough
+	default:
+		os.Stdout.Write(blockProof.ToBOC())
+	}
 }
