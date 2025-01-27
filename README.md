@@ -11,7 +11,7 @@ A set of command-line tools for interacting with a **trustless bridge** in the T
   Removes unnecessary data from a block to reduce its size. Supports output in `bin` or `hex` format.
 
 - **Block Proof**  
-  Generates a proof of block BOC loaded from a specified file. Supports output in `bin` or `hex` format.
+  Generates a state proof from one block to another, loaded from a specified file. Supports output in `bin` or `hex` format.
 
 - **Block Signatures**  
   Extracts and returns block signatures for a specified block in the masterchain. Supports output in `json`, `bin`, or `hex` format.

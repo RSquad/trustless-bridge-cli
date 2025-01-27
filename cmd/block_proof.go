@@ -18,9 +18,7 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
-	"github.com/rsquad/trustless-bridge-cli/internal/blockutils"
 	"github.com/spf13/cobra"
 )
 
@@ -32,38 +30,8 @@ var blockProofCmd = &cobra.Command{
 
 func init() {
 	blockCmd.AddCommand(blockProofCmd)
-	blockProofCmd.Flags().StringP("input-file", "i", "", "Input file")
-	blockProofCmd.Flags().StringP("output-format", "f", "bin", "Output format: bin, hex")
-	blockProofCmd.MarkFlagRequired("input-file")
 }
 
 func runBlockProof(cmd *cobra.Command, args []string) {
-	inputFile, err := cmd.Flags().GetString("input-file")
-	if err != nil {
-		panic(err)
-	}
-	outputFormat, err := cmd.Flags().GetString("output-format")
-	if err != nil {
-		panic(err)
-	}
-
-	blockBOC, err := os.ReadFile(inputFile)
-	if err != nil {
-		panic(err)
-	}
-
-	blockProof, err := blockutils.BuildBlockProof(blockBOC)
-	if err != nil {
-		panic(err)
-	}
-
-	switch outputFormat {
-	case "hex":
-		fmt.Printf("%x\n", blockProof.ToBOC())
-
-	case "bin":
-		fallthrough
-	default:
-		os.Stdout.Write(blockProof.ToBOC())
-	}
+	fmt.Println("not implemented")
 }

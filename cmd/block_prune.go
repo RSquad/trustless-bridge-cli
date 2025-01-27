@@ -22,6 +22,7 @@ import (
 
 	"github.com/rsquad/trustless-bridge-cli/internal/blockutils"
 	"github.com/spf13/cobra"
+	"github.com/xssnick/tonutils-go/tvm/cell"
 )
 
 var blockPruneCmd = &cobra.Command{
@@ -33,6 +34,7 @@ var blockPruneCmd = &cobra.Command{
 func init() {
 	blockCmd.AddCommand(blockPruneCmd)
 	blockPruneCmd.Flags().StringP("input-file", "i", "", "Input file")
+	blockPruneCmd.Flags().BoolP("include-proof-header", "h", false, "Include proof header")
 	blockPruneCmd.Flags().StringP("output-format", "f", "bin", "Output format: bin, hex")
 	blockPruneCmd.MarkFlagRequired("input-file")
 }
@@ -46,24 +48,36 @@ func runBlockPrune(cmd *cobra.Command, args []string) {
 	if err != nil {
 		panic(err)
 	}
+	includeProofHeader, err := cmd.Flags().GetBool("include-proof-header")
+	if err != nil {
+		panic(err)
+	}
 
 	blockBOC, err := os.ReadFile(inputFile)
 	if err != nil {
 		panic(err)
 	}
 
-	prunedBlock, err := blockutils.PruneBlock(blockBOC)
-	if err != nil {
-		panic(err)
+	var result *cell.Cell
+	if includeProofHeader {
+		result, err = blockutils.BuildBlockProof(blockBOC)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		result, err = blockutils.PruneBlock(blockBOC)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	switch outputFormat {
 	case "hex":
-		fmt.Printf("%x\n", prunedBlock.ToBOC())
+		fmt.Printf("%x\n", result.ToBOC())
 
 	case "bin":
 		fallthrough
 	default:
-		os.Stdout.Write(prunedBlock.ToBOC())
+		os.Stdout.Write(result.ToBOC())
 	}
 }
