@@ -13,6 +13,9 @@ A set of command-line tools for interacting with a **trustless bridge** in the T
 - **Block Proof**  
   Generates a proof of block BOC loaded from a specified file. Supports output in `bin` or `hex` format.
 
+- **Block Signatures**  
+  Extracts and returns block signatures for a specified block in the masterchain. Supports output in `json`, `bin`, or `hex` format.
+
 ## Configuration
 
 By default, the utilities look for a configuration file named `.trustless-bridge-cli.yaml` in the user's home directory.
