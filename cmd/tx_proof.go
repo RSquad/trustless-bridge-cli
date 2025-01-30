@@ -29,10 +29,11 @@ import (
 var txProofCmd = &cobra.Command{
 	Use:   "proof",
 	Short: "build transaction proof from block",
-	Long: `Define transaction hash and path to block BOC file.
-	Examples: 
+	Long: `Builds transaction proof from block.
+By default, prints proof in hex format.
+Examples: 
     cli tx proof -t A43DEBA96E0815151645411FEF0FE7E54FF35500B02310A19E7A89AFDFA58194 -b EFFC17EF8FE824E6A039944F3BFC9CEC4A5D9F74D8D93122243EDBD7BF5D4123.boc`,
-	Run: runTxProof,
+	RunE: runTxProof,
 }
 
 func init() {
@@ -41,30 +42,48 @@ func init() {
 	txProofCmd.Flags().StringP("block-boc", "b", "", "path to boc file with block")
 	txProofCmd.MarkFlagRequired("tx-hash")
 	txProofCmd.MarkFlagRequired("block-boc")
+	txProofCmd.Flags().StringP("output-format", "f", "hex", "Output format: bin, hex")
 }
 
-func runTxProof(cmd *cobra.Command, args []string) {
+func runTxProof(cmd *cobra.Command, args []string) error {
 	blockBocPath, err := cmd.Flags().GetString("block-boc")
 	if err != nil {
-		panic(err)
+		return err
 	}
+
 	txHash, err := cmd.Flags().GetBytesHex("tx-hash")
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	blockBOC, err := os.ReadFile(blockBocPath)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	blockCell, err := cell.FromBOC(blockBOC)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	txProofCell, err := txutils.BuildTxProof(blockCell, txHash)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	fmt.Printf("tx proof: %s\n\n\n", txProofCell.Dump())
+	formatProof(cmd, txProofCell)
+	return nil
+}
+
+func formatProof(cmd *cobra.Command, proofCell *cell.Cell) {
+	outputFormat, err := cmd.Flags().GetString("output-format")
+	if err != nil {
+		panic(err)
+	}
+	switch outputFormat {
+	case "hex":
+		fmt.Printf("%x\n", proofCell.ToBOC())
+	case "bin":
+		fallthrough
+	default:
+		os.Stdout.Write(proofCell.ToBOC())
+	}
 }
