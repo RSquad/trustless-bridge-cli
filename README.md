@@ -6,15 +6,14 @@ A set of command-line tools for interacting with a **trustless bridge** in the T
 
 - **Fetch Block**  
   Retrieves a block from the blockchain by its `seqno` and `workchain`. Supports output in `json`, `bin`, or `hex` format.
-
 - **Prune Block**  
   Removes unnecessary data from a block to reduce its size. Supports output in `bin` or `hex` format.
-
 - **Block Proof**  
   Generates a proof from one block to another, loaded from a specified file. Supports output in `json`, `bin`, or `hex` format. Currently works only with blocks from the masterchain.
-
 - **Block Signatures**  
   Extracts and returns block signatures for a specified block in the masterchain. Supports output in `json`, `bin`, or `hex` format.
+- **Transaction Proof**  
+  Constructs a proof for a transaction contained within a specified block. Supports output in `hex` or `bin` format.
 
 ## Configuration
 
