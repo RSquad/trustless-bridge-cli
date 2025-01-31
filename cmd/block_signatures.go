@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"sort"
 
 	"github.com/spf13/cobra"
 	"github.com/xssnick/tonutils-go/adnl"
@@ -34,8 +35,8 @@ import (
 
 var blockSignaturesCmd = &cobra.Command{
 	Use:   "signatures",
-	Short: "This command extracts and returns block signatures for a specified block in the masterchain",
-	Long: `This command retrieves block proofs from the TON network, locates the validator signatures associated with a given block, and outputs them in one of three formats:
+	Short: "This command extracts and returns necessary block signatures for verification in the masterchain",
+	Long: `This command retrieves block proofs from the TON network, locates the validator signatures associated with a given block, and outputs only the necessary signatures for verification in one of three formats:
 -	json: An array of objects like [{ "pubkey": "...", "signature": "..." }].
 -	bin: A BOC containing a TLB-encoded dictionary of type Dict<int256, 512> that maps each validator's public key (int256) to the 512-bit signature.
 -	hex: The same BOC as in bin mode, but presented as a hex-encoded string.`,
@@ -160,22 +161,55 @@ func mapValidatorsToSignatures(
 	validators []*tlb.ValidatorAddr,
 	signatures []ton.Signature,
 ) (map[[32]byte][]byte, error) {
-	result := map[[32]byte][]byte{}
-	validatorsMap := map[string]*tlb.ValidatorAddr{}
-	for _, v := range validators {
-		kid, err := tl.Hash(adnl.PublicKeyED25519{Key: v.PublicKey.Key})
+	var totalWeight uint64
+	validatorsMap := make(map[string]*tlb.ValidatorAddr)
+
+	for _, validator := range validators {
+		kid, err := tl.Hash(adnl.PublicKeyED25519{Key: validator.PublicKey.Key})
 		if err != nil {
 			return nil, err
 		}
-		validatorsMap[string(kid)] = v
+		validatorsMap[string(kid)] = validator
+		totalWeight += validator.Weight
 	}
 
-	for _, signature := range signatures {
-		validator := validatorsMap[string(signature.NodeIDShort)]
-		var key [32]byte
-		copy(key[:], validator.PublicKey.Key)
-		result[key] = signature.Signature
+	type signerInfo struct {
+		key       [32]byte
+		weight    uint64
+		signature []byte
+	}
+	var signers []signerInfo
+
+	for _, s := range signatures {
+		if v, ok := validatorsMap[string(s.NodeIDShort)]; ok {
+			var key [32]byte
+			copy(key[:], v.PublicKey.Key)
+			signers = append(signers, signerInfo{
+				key:       key,
+				weight:    v.Weight,
+				signature: s.Signature,
+			})
+		}
 	}
 
-	return result, nil
+	sort.Slice(signers, func(i, j int) bool {
+		return signers[i].weight > signers[j].weight
+	})
+
+	var signedWeight uint64
+	minSignatures := make(map[[32]byte][]byte)
+
+	for _, signer := range signers {
+		minSignatures[signer.key] = signer.signature
+		signedWeight += signer.weight
+		if 3*signedWeight > 2*totalWeight {
+			break
+		}
+	}
+
+	if 3*signedWeight <= 2*totalWeight {
+		return nil, fmt.Errorf("insufficient signed weight (%d/%d)", 3*signedWeight, 2*totalWeight)
+	}
+
+	return minSignatures, nil
 }
