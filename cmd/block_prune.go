@@ -28,13 +28,14 @@ import (
 var blockPruneCmd = &cobra.Command{
 	Use:   "prune",
 	Short: "Prune a block to remove unnecessary data",
+	Long:  "This command returns either a pruned block with block info or with config param 34 if the provided block was a key block with the corresponding config.",
 	Run:   runBlockPrune,
 }
 
 func init() {
 	blockCmd.AddCommand(blockPruneCmd)
 	blockPruneCmd.Flags().StringP("input-file", "i", "", "Input file")
-	blockPruneCmd.Flags().BoolP("include-proof-header", "h", false, "Include proof header")
+	blockPruneCmd.Flags().BoolP("as-exotic", "e", false, "Output as exotic")
 	blockPruneCmd.Flags().StringP("output-format", "f", "bin", "Output format: bin, hex")
 	blockPruneCmd.MarkFlagRequired("input-file")
 }
@@ -48,7 +49,7 @@ func runBlockPrune(cmd *cobra.Command, args []string) {
 	if err != nil {
 		panic(err)
 	}
-	includeProofHeader, err := cmd.Flags().GetBool("include-proof-header")
+	asExotic, err := cmd.Flags().GetBool("as-exotic")
 	if err != nil {
 		panic(err)
 	}
@@ -59,7 +60,7 @@ func runBlockPrune(cmd *cobra.Command, args []string) {
 	}
 
 	var result *cell.Cell
-	if includeProofHeader {
+	if asExotic {
 		result, err = blockutils.BuildBlockProof(blockBOC)
 		if err != nil {
 			panic(err)
