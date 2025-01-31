@@ -1,37 +1,54 @@
 package blockutils
 
 import (
+	"fmt"
+
+	"github.com/xssnick/tonutils-go/tlb"
 	"github.com/xssnick/tonutils-go/tvm/cell"
 )
 
-func BuildBlockProof(blockBOC []byte) (*cell.Cell, error) {
+func BuildBlockProof(blockBOC []byte, isKeyblock bool) (*cell.Cell, error) {
 	blockCell, err := cell.FromBOC(blockBOC)
 	if err != nil {
 		return nil, err
 	}
 
-	isCustomCellExists := true
-	_, err = blockCell.MustPeekRef(3).PeekRef(3)
-	if err != nil {
-		isCustomCellExists = false
-	}
-
-	sk := createBlockProofSk(isCustomCellExists)
-
-	blockProof, err := blockCell.CreateProof(sk)
+	var block tlb.Block
+	err = tlb.LoadFromCell(&block, blockCell.BeginParse())
 	if err != nil {
 		return nil, err
 	}
 
-	return blockProof, nil
+	if isKeyblock {
+		if block.Extra == nil || block.Extra.Custom == nil || block.Extra.Custom.ConfigParams == nil {
+			return nil, fmt.Errorf("extra or custom or config params is nil")
+		}
+		sk := createKeyBlockProofSk()
+		_, configSk, err := block.Extra.Custom.ConfigParams.Config.Params.LoadValueWithProof(
+			cell.BeginCell().MustStoreUInt(34, 32).EndCell(),
+			sk,
+		)
+		if err != nil {
+			return nil, err
+		}
+		configSk.SetRecursive()
+
+		return blockCell.CreateProof(sk)
+	}
+
+	sk := createBlockProofSk()
+	return blockCell.CreateProof(sk)
 }
 
-func createBlockProofSk(isCustomCellExists bool) *cell.ProofSkeleton {
+func createKeyBlockProofSk() *cell.ProofSkeleton {
 	sk := cell.CreateProofSkeleton()
 	extraSk := sk.ProofRef(3)
-	extraSk.ProofRef(2).SetRecursive() // account_blocks
-	if isCustomCellExists {
-		extraSk.ProofRef(3).SetRecursive() // custom
-	}
+	customSk := extraSk.ProofRef(3)
+	customSk.ProofRef(3) // config
+	return sk
+}
+
+func createBlockProofSk() *cell.ProofSkeleton {
+	sk := cell.CreateProofSkeleton().ProofRef(0)
 	return sk
 }

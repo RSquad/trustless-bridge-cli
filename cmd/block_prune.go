@@ -34,7 +34,8 @@ var blockPruneCmd = &cobra.Command{
 func init() {
 	blockCmd.AddCommand(blockPruneCmd)
 	blockPruneCmd.Flags().StringP("input-file", "i", "", "Input file")
-	blockPruneCmd.Flags().BoolP("include-proof-header", "h", false, "Include proof header")
+	blockPruneCmd.Flags().BoolP("as-exotic", "e", false, "Output as exotic")
+	blockPruneCmd.Flags().BoolP("is-keyblock", "k", false, "Is keyblock")
 	blockPruneCmd.Flags().StringP("output-format", "f", "bin", "Output format: bin, hex")
 	blockPruneCmd.MarkFlagRequired("input-file")
 }
@@ -48,7 +49,11 @@ func runBlockPrune(cmd *cobra.Command, args []string) {
 	if err != nil {
 		panic(err)
 	}
-	includeProofHeader, err := cmd.Flags().GetBool("include-proof-header")
+	asExotic, err := cmd.Flags().GetBool("as-exotic")
+	if err != nil {
+		panic(err)
+	}
+	isKeyblock, err := cmd.Flags().GetBool("is-keyblock")
 	if err != nil {
 		panic(err)
 	}
@@ -59,13 +64,13 @@ func runBlockPrune(cmd *cobra.Command, args []string) {
 	}
 
 	var result *cell.Cell
-	if includeProofHeader {
-		result, err = blockutils.BuildBlockProof(blockBOC)
+	if asExotic {
+		result, err = blockutils.BuildBlockProof(blockBOC, isKeyblock)
 		if err != nil {
 			panic(err)
 		}
 	} else {
-		result, err = blockutils.PruneBlock(blockBOC)
+		result, err = blockutils.PruneBlock(blockBOC, isKeyblock)
 		if err != nil {
 			panic(err)
 		}
