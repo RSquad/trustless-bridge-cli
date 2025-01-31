@@ -23,31 +23,33 @@ func BuildBlockProof(blockBOC []byte, isKeyblock bool) (*cell.Cell, error) {
 		if block.Extra == nil || block.Extra.Custom == nil || block.Extra.Custom.ConfigParams == nil {
 			return nil, fmt.Errorf("extra or custom or config params is nil")
 		}
-		root, sk := createKeyBlockProofSk()
-		_, configSk, err := block.Extra.Custom.ConfigParams.Config.Params.LoadValueWithProof(
+		rootSk, configSk := createKeyBlockProofSk()
+		_, config34Sk, err := block.Extra.Custom.ConfigParams.Config.Params.LoadValueWithProof(
 			cell.BeginCell().MustStoreUInt(34, 32).EndCell(),
-			sk,
+			configSk,
 		)
 		if err != nil {
 			return nil, err
 		}
-		configSk.SetRecursive()
+		config34Sk.SetRecursive()
 
-		return blockCell.CreateProof(root)
+		return blockCell.CreateProof(rootSk)
 	}
 
-	sk := createBlockProofSk()
-	return blockCell.CreateProof(sk)
+	rootSk := createBlockProofSk()
+	return blockCell.CreateProof(rootSk)
 }
 
-func createKeyBlockProofSk() (root *cell.ProofSkeleton, sk *cell.ProofSkeleton) {
-	root = cell.CreateProofSkeleton()
-	extraSk := root.ProofRef(3)
+func createKeyBlockProofSk() (rootSk *cell.ProofSkeleton, configSk *cell.ProofSkeleton) {
+	rootSk = cell.CreateProofSkeleton()
+	extraSk := rootSk.ProofRef(3)
 	customSk := extraSk.ProofRef(3)
-	return root, customSk.ProofRef(3)
+	configSk = customSk.ProofRef(3)
+	return rootSk, configSk
 }
 
-func createBlockProofSk() *cell.ProofSkeleton {
-	sk := cell.CreateProofSkeleton().ProofRef(0)
-	return sk
+func createBlockProofSk() (rootSk *cell.ProofSkeleton) {
+	rootSk = cell.CreateProofSkeleton()
+	rootSk.ProofRef(0)
+	return rootSk
 }
