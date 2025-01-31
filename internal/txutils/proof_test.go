@@ -1,4 +1,4 @@
-package main
+package txutils_test
 
 import (
 	"math/big"
@@ -23,7 +23,10 @@ func prepareExampleCell(keys []int64) (*cell.Cell, *ExampleStruct) {
 		MustStoreUInt(0x11223311, 32).
 		MustStoreRef(cell.BeginCell().
 			MustStoreStringSnake("hello tonutils-go").
-			MustStoreRef(cell.BeginCell().MustStoreUInt(0xFFFFFFFF, 32).MustStoreUInt(0xAAAAAAAA, 32).EndCell()).
+			MustStoreRef(cell.BeginCell().
+				MustStoreUInt(0xFFFFFFFF, 32).
+				MustStoreUInt(0xAAAAAAAA, 32).
+				EndCell()).
 			EndCell()).
 		EndCell()
 
@@ -54,19 +57,15 @@ func TestCreateDict3Proof(t *testing.T) {
 	}
 	skKey.SetRecursive()
 
-	proof, err := exampleCell.CreateProof(sk)
+	_, err = exampleCell.CreateProof(sk)
 	if err != nil {
 		panic(err)
 	}
-
-	println("PROOF\n", proof.Dump())
 }
 
 func TestCreateDict1Proof(t *testing.T) {
 	keys := []int64{778}
 	exampleCell, data := prepareExampleCell(keys)
-
-	println("Print Struct\n", exampleCell.Dump())
 
 	sk := cell.CreateProofSkeleton()
 	skDictA := sk.ProofRef(0)
@@ -77,10 +76,8 @@ func TestCreateDict1Proof(t *testing.T) {
 	}
 	skKey.SetRecursive()
 
-	proof, err := exampleCell.CreateProof(sk)
+	_, err = exampleCell.CreateProof(sk)
 	if err != nil {
 		panic(err)
 	}
-
-	println("PROOF 1 key\n", proof.Dump())
 }
