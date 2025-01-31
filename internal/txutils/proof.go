@@ -3,101 +3,95 @@ package txutils
 import (
 	"bytes"
 	"fmt"
-	"math/big"
 
+	"github.com/xssnick/tonutils-go/tlb"
 	"github.com/xssnick/tonutils-go/tvm/cell"
 )
 
-type AccountBlockTx struct {
-	accountId         []byte
-	txHash            []byte
-	txLogicalTime     uint64
-	totalAccounts     int
-	totalTransactions int
+func skipCC(s *cell.Slice) {
+	var cc tlb.CurrencyCollection
+	tlb.LoadFromCellAsProof(&cc, s)
 }
 
-func skipCurrencyCollection(s *cell.Slice) {
-	s.MustLoadCoins()
-	s.MustLoadDict(32)
-}
-
-func findAccountBlockTx(accountBlocksDict *cell.Dictionary, txHash []byte) (*AccountBlockTx, error) {
-	accounts, err := accountBlocksDict.LoadAll()
+func findTxInAccountBlocks(
+	accBlocks tlb.ShardAccountBlocks,
+	givenTxHash []byte,
+) (*tlb.Transaction, error) {
+	accBlocksKV, err := accBlocks.Accounts.LoadAll()
 	if err != nil {
 		return nil, err
 	}
-	totalAccounts := len(accounts)
-	for _, kv := range accounts {
-		accountBlock := kv.Value
-		accountId := kv.Key.MustLoadBigUInt(256).Bytes()
-		skipCurrencyCollection(accountBlock)
-		accountTransTag := accountBlock.MustLoadUInt(4)
-		if accountTransTag != 5 {
-			return nil, fmt.Errorf("ShardAccountBlock has invalid accountBlock (invalid tag)")
-		}
-		// skip account_addr
-		accountBlock.MustLoadBigUInt(256)
-		transDict, err := accountBlock.ToDict(64)
+
+	var tx tlb.Transaction
+
+	for _, accKV := range accBlocksKV {
+		accCell := accKV.Value
+		skipCC(accCell)
+
+		var accBlock tlb.AccountBlock
+		err := tlb.LoadFromCell(&accBlock, accCell)
 		if err != nil {
-			return nil, err
+			continue
 		}
-		transactions, err := transDict.LoadAll()
+
+		txs, err := accBlock.Transactions.LoadAll()
 		if err != nil {
-			return nil, err
+			continue
 		}
-		totalTransactions := len(transactions)
-		for _, tran := range transactions {
-			skipCurrencyCollection(tran.Value)
-			hash := tran.Value.MustLoadRef().MustToCell().Hash()
-			if bytes.Equal(txHash, hash) {
-				txLogicalTime := tran.Key.MustLoadUInt(64)
-				return &AccountBlockTx{
-					accountId, txHash, txLogicalTime, totalAccounts, totalTransactions,
-				}, nil
+
+		for _, txKV := range txs {
+			txV := txKV.Value
+			skipCC(txV)
+
+			txCell := txV.MustLoadRef().MustToCell()
+			txHash := txCell.Hash()
+			err = tlb.LoadFromCell(&tx, txCell.BeginParse())
+			if err != nil {
+				continue
+			}
+
+			if bytes.Equal(givenTxHash, txHash) {
+				return &tx, nil
 			}
 		}
 	}
-	return nil, fmt.Errorf("tx not found in transactions HashmapAug")
+	return nil, fmt.Errorf("tx not found")
 }
 
 func BuildTxProof(blockCell *cell.Cell, txHash []byte) (*cell.Cell, error) {
-	rootProofPath := cell.CreateProofSkeleton()
-	sk := rootProofPath.ProofRef(3).ProofRef(2).ProofRef(0)
+	rootSk := cell.CreateProofSkeleton()
+	sk := rootSk.ProofRef(3).ProofRef(2).ProofRef(0)
 
-	extra := blockCell.MustPeekRef(3)
-	accountBlocksCell := extra.MustPeekRef(2)
-	accountBlocksDict := accountBlocksCell.BeginParse().MustLoadDict(256)
-	accountBlockTx, err := findAccountBlockTx(accountBlocksDict, txHash)
+	var accBlocks tlb.ShardAccountBlocks
+	tlb.LoadFromCell(&accBlocks, blockCell.MustPeekRef(3).MustPeekRef(2).BeginParse())
+	tx, err := findTxInAccountBlocks(accBlocks, txHash)
 	if err != nil {
 		return nil, err
 	}
-	accountBlock, accBlockSk, err := accountBlocksDict.LoadValueWithProof(
-		cell.BeginCell().MustStoreBigUInt(new(big.Int).SetBytes(accountBlockTx.accountId), 256).EndCell(),
+
+	accCell, accBlockSk, err := accBlocks.Accounts.LoadValueWithProof(
+		cell.BeginCell().MustStoreSlice(tx.AccountAddr, 256).EndCell(),
 		sk)
 	if err != nil {
 		return nil, err
 	}
-	if accountBlockTx.totalAccounts == 1 {
-		accBlockSk = sk
-	}
 
-	skipCurrencyCollection(accountBlock)
-	// skip tag
-	accountBlock.MustLoadUInt(4)
-	// skip account_addr
-	accountBlock.MustLoadBigUInt(256)
-	transDict, _ := accountBlock.ToDict(64)
+	skipCC(accCell)
 
-	_, transactionSk, err := transDict.LoadValueWithProof(cell.BeginCell().MustStoreUInt(accountBlockTx.txLogicalTime, 64).EndCell(), accBlockSk)
+	var accBlock tlb.AccountBlock
+	tlb.LoadFromCell(&accBlock, accCell)
+
+	_, txSk, err := accBlock.Transactions.LoadValueWithProof(
+		cell.BeginCell().MustStoreUInt(tx.LT, 64).EndCell(),
+		accBlockSk,
+	)
 	if err != nil {
 		return nil, err
 	}
-	if accountBlockTx.totalTransactions == 1 {
-		transactionSk = accBlockSk
-	}
-	transactionSk.SetRecursive()
 
-	txProof, err := blockCell.CreateProof(rootProofPath)
+	txSk.SetRecursive()
+
+	txProof, err := blockCell.CreateProof(rootSk)
 	if err != nil {
 		return nil, err
 	}

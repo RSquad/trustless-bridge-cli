@@ -25,59 +25,60 @@ import (
 	"github.com/xssnick/tonutils-go/tvm/cell"
 )
 
-// txProofCmd represents the proofTx command
 var txProofCmd = &cobra.Command{
 	Use:   "proof",
-	Short: "build transaction proof from block",
-	Long: `Builds transaction proof from block.
-By default, prints proof in hex format.
-Examples: 
-    cli tx proof -t A43DEBA96E0815151645411FEF0FE7E54FF35500B02310A19E7A89AFDFA58194 -b EFFC17EF8FE824E6A039944F3BFC9CEC4A5D9F74D8D93122243EDBD7BF5D4123.boc`,
-	RunE: runTxProof,
+	Short: "Builds transaction proof within a block",
+	Long: `This command constructs a proof for a transaction contained within a specified block.
+The proof is generated based on the transaction hash and the block file provided.
+By default, the proof is output in hexadecimal format.
+Usage example: 
+    trustless-bridge-cli tx proof -t <transaction_hash> -b <path_to_block.boc>
+You can specify the output format using the -f flag, with options 'hex' for hexadecimal or 'bin' for binary.`,
+	Run: runTxProof,
 }
 
 func init() {
 	txCmd.AddCommand(txProofCmd)
-	txProofCmd.Flags().BytesHexP("tx-hash", "t", nil, "tx hash")
-	txProofCmd.Flags().StringP("block-boc", "b", "", "path to boc file with block")
+	txProofCmd.Flags().BytesHexP("tx-hash", "t", nil, "Transaction hash in hexadecimal format")
+	txProofCmd.Flags().StringP("block-boc-path", "b", "", "Path to the BOC file containing the block")
 	txProofCmd.MarkFlagRequired("tx-hash")
-	txProofCmd.MarkFlagRequired("block-boc")
-	txProofCmd.Flags().StringP("output-format", "f", "hex", "Output format: bin, hex")
+	txProofCmd.MarkFlagRequired("block-boc-path")
+	txProofCmd.Flags().StringP("output-format", "f", "hex", "Output format options: 'bin' for binary, 'hex' for hexadecimal")
 }
 
-func runTxProof(cmd *cobra.Command, args []string) error {
-	blockBocPath, err := cmd.Flags().GetString("block-boc")
-	if err != nil {
-		return err
-	}
-
+func runTxProof(cmd *cobra.Command, args []string) {
 	txHash, err := cmd.Flags().GetBytesHex("tx-hash")
 	if err != nil {
-		return err
+		panic(err)
+	}
+	blockBocPath, err := cmd.Flags().GetString("block-boc-path")
+	if err != nil {
+		panic(err)
 	}
 
 	blockBOC, err := os.ReadFile(blockBocPath)
 	if err != nil {
-		return err
+		panic(err)
 	}
 	blockCell, err := cell.FromBOC(blockBOC)
 	if err != nil {
-		return err
+		panic(err)
 	}
+
 	txProofCell, err := txutils.BuildTxProof(blockCell, txHash)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
-	formatProof(cmd, txProofCell)
-	return nil
+	outputFormattedProof(cmd, txProofCell)
 }
 
-func formatProof(cmd *cobra.Command, proofCell *cell.Cell) {
+func outputFormattedProof(cmd *cobra.Command, proofCell *cell.Cell) {
 	outputFormat, err := cmd.Flags().GetString("output-format")
 	if err != nil {
 		panic(err)
 	}
+
 	switch outputFormat {
 	case "hex":
 		fmt.Printf("%x\n", proofCell.ToBOC())
