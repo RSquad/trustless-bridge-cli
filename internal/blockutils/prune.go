@@ -4,8 +4,8 @@ import (
 	"github.com/xssnick/tonutils-go/tvm/cell"
 )
 
-func PruneBlock(blockBOC []byte, isKeyblock bool) (*cell.Cell, error) {
-	blockProof, err := BuildBlockProof(blockBOC, isKeyblock)
+func PruneBlock(blockBOC []byte) (*cell.Cell, error) {
+	blockProof, err := BuildBlockProof(blockBOC)
 	if err != nil {
 		return nil, err
 	}

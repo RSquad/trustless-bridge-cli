@@ -1,13 +1,11 @@
 package blockutils
 
 import (
-	"fmt"
-
 	"github.com/xssnick/tonutils-go/tlb"
 	"github.com/xssnick/tonutils-go/tvm/cell"
 )
 
-func BuildBlockProof(blockBOC []byte, isKeyblock bool) (*cell.Cell, error) {
+func BuildBlockProof(blockBOC []byte) (*cell.Cell, error) {
 	blockCell, err := cell.FromBOC(blockBOC)
 	if err != nil {
 		return nil, err
@@ -19,24 +17,21 @@ func BuildBlockProof(blockBOC []byte, isKeyblock bool) (*cell.Cell, error) {
 		return nil, err
 	}
 
-	if isKeyblock {
-		if block.Extra == nil || block.Extra.Custom == nil || block.Extra.Custom.ConfigParams == nil {
-			return nil, fmt.Errorf("extra or custom or config params is nil")
-		}
-		rootSk, configSk := createKeyBlockProofSk()
-		_, config34Sk, err := block.Extra.Custom.ConfigParams.Config.Params.LoadValueWithProof(
-			cell.BeginCell().MustStoreUInt(34, 32).EndCell(),
-			configSk,
-		)
-		if err != nil {
-			return nil, err
-		}
-		config34Sk.SetRecursive()
-
+	if block.Extra == nil || block.Extra.Custom == nil || block.Extra.Custom.ConfigParams == nil {
+		rootSk := createBlockProofSk()
 		return blockCell.CreateProof(rootSk)
 	}
 
-	rootSk := createBlockProofSk()
+	rootSk, configSk := createKeyBlockProofSk()
+	_, config34Sk, err := block.Extra.Custom.ConfigParams.Config.Params.LoadValueWithProof(
+		cell.BeginCell().MustStoreUInt(34, 32).EndCell(),
+		configSk,
+	)
+	if err != nil {
+		return nil, err
+	}
+	config34Sk.SetRecursive()
+
 	return blockCell.CreateProof(rootSk)
 }
 
