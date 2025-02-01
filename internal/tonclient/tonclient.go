@@ -30,6 +30,26 @@ func NewTonClient(configUrl string) (*TonClient, error) {
 	return &TonClient{connPool: connPool, API: api}, nil
 }
 
+func (tc *TonClient) GetBlockProofExt(ctx context.Context, known, target *ton.BlockIDExt) (*ton.PartialBlockProof, error) {
+	var resp tl.Serializable
+	err := tc.API.Client().QueryLiteserver(ctx, ton.GetBlockProof{
+		Mode:        0x1001,
+		KnownBlock:  known,
+		TargetBlock: target,
+	}, &resp)
+	if err != nil {
+		return nil, err
+	}
+
+	switch t := resp.(type) {
+	case ton.PartialBlockProof:
+		return &t, nil
+	case ton.LSError:
+		return nil, t
+	}
+	return nil, fmt.Errorf("unknown response type")
+}
+
 func (tc *TonClient) GetBlockBOC(ctx context.Context, block *ton.BlockIDExt) ([]byte, error) {
 	var resp tl.Serializable
 	err := tc.API.Client().QueryLiteserver(ctx, ton.GetBlockData{ID: block}, &resp)

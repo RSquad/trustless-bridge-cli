@@ -70,6 +70,16 @@ func runBlockSignatures(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
+	prevBlockIDExt, err := tonClient.API.LookupBlock(
+		context.Background(),
+		block.BlockInfo.Shard.WorkchainID,
+		int64(block.BlockInfo.Shard.GetShardID()),
+		seqno-1,
+	)
+	if err != nil {
+		panic(err)
+	}
+
 	prevKeyBlockIDExt, err := tonClient.API.LookupBlock(
 		context.Background(),
 		block.BlockInfo.Shard.WorkchainID,
@@ -98,9 +108,9 @@ func runBlockSignatures(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	blockProof, err := tonClient.API.GetBlockProof(
+	blockProof, err := tonClient.GetBlockProofExt(
 		context.Background(),
-		prevKeyBlockIDExt,
+		prevBlockIDExt,
 		blockIDExt,
 	)
 	if err != nil {
@@ -148,13 +158,12 @@ func runBlockSignatures(cmd *cobra.Command, args []string) {
 }
 
 func extractSignatures(proof *ton.PartialBlockProof) []ton.Signature {
-	var signatures []ton.Signature
-	for _, step := range proof.Steps {
-		if fwd, ok := step.(ton.BlockLinkForward); ok {
-			signatures = append(signatures, fwd.SignatureSet.Signatures...)
+	for i := len(proof.Steps) - 1; i >= 0; i-- {
+		if fwd, ok := proof.Steps[i].(ton.BlockLinkForward); ok {
+			return fwd.SignatureSet.Signatures
 		}
 	}
-	return signatures
+	return nil
 }
 
 func mapValidatorsToSignatures(
