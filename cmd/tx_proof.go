@@ -65,7 +65,7 @@ func runTxProof(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	txProofCell, err := txutils.BuildTxProof(blockCell, txHash)
+	txProofCell, _, err := txutils.BuildTxProof(blockCell, txHash)
 	if err != nil {
 		panic(err)
 	}

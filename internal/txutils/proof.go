@@ -58,7 +58,7 @@ func findTxInAccountBlocks(
 	return nil, fmt.Errorf("tx not found")
 }
 
-func BuildTxProof(blockCell *cell.Cell, txHash []byte) (*cell.Cell, error) {
+func BuildTxProof(blockCell *cell.Cell, txHash []byte) (*cell.Cell, *tlb.Transaction, error) {
 	rootSk := cell.CreateProofSkeleton()
 	sk := rootSk.ProofRef(3).ProofRef(2).ProofRef(0)
 
@@ -66,14 +66,14 @@ func BuildTxProof(blockCell *cell.Cell, txHash []byte) (*cell.Cell, error) {
 	tlb.LoadFromCell(&accBlocks, blockCell.MustPeekRef(3).MustPeekRef(2).BeginParse())
 	tx, err := findTxInAccountBlocks(accBlocks, txHash)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	accCell, accBlockSk, err := accBlocks.Accounts.LoadValueWithProof(
 		cell.BeginCell().MustStoreSlice(tx.AccountAddr, 256).EndCell(),
 		sk)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	skipCC(accCell)
@@ -86,14 +86,14 @@ func BuildTxProof(blockCell *cell.Cell, txHash []byte) (*cell.Cell, error) {
 		accBlockSk,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	txSk.SetRecursive()
 
 	txProof, err := blockCell.CreateProof(rootSk)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return txProof, nil
+	return txProof, tx, nil
 }

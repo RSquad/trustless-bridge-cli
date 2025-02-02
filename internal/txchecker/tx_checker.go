@@ -9,7 +9,13 @@ import (
 	"github.com/spf13/viper"
 	"github.com/xssnick/tonutils-go/address"
 	"github.com/xssnick/tonutils-go/tlb"
+	"github.com/xssnick/tonutils-go/ton"
+	"github.com/xssnick/tonutils-go/ton/wallet"
 	"github.com/xssnick/tonutils-go/tvm/cell"
+)
+
+const (
+	opCodeCheckTx = 0x91d555f7
 )
 
 type TxCheckerContract struct {
@@ -39,6 +45,26 @@ func New(
 	return &TxCheckerContract{addr, tonClient}
 }
 
+func (c *TxCheckerContract) SendCheckTx(
+	ctx context.Context,
+	txCell *cell.Cell,
+	proofCell *cell.Cell,
+	blockCell *cell.Cell,
+) (*tlb.Transaction, *ton.BlockIDExt, error) {
+	w := c.tonClient.GetWallet()
+
+	payload := cell.BeginCell().
+		MustStoreUInt(opCodeCheckTx, 32).
+		MustStoreRef(txCell).
+		MustStoreRef(proofCell).
+		MustStoreRef(blockCell).
+		EndCell()
+
+	message := wallet.SimpleMessage(c.Addr, tlb.MustFromTON("0.1"), payload)
+
+	return w.SendWaitTransaction(ctx, message)
+}
+
 func DeployTxChecker(ctx context.Context, tonClient *tonclient.TonClient, initData *InitData) (*address.Address, error) {
 	wallet := tonClient.GetWallet()
 
@@ -60,4 +86,12 @@ func DeployTxChecker(ctx context.Context, tonClient *tonclient.TonClient, initDa
 		InitDataToCell(initData))
 
 	return addr, err
+}
+
+func TxToCell(tx *tlb.Transaction) *cell.Cell {
+	return cell.BeginCell().
+		MustStoreSlice(tx.Hash, 256).
+		MustStoreSlice(tx.AccountAddr, 256).
+		MustStoreUInt(tx.LT, 64).
+		EndCell()
 }
