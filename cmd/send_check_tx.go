@@ -11,6 +11,7 @@ import (
 	"github.com/rsquad/trustless-bridge-cli/internal/txutils"
 	"github.com/spf13/cobra"
 	"github.com/xssnick/tonutils-go/address"
+	"github.com/xssnick/tonutils-go/tvm/cell"
 )
 
 var sendCheckTxCmd = &cobra.Command{
@@ -63,9 +64,14 @@ func runSendCheckTx(cmd *cobra.Command, args []string) error {
 
 	log.Printf("Attention: You are sending a message to the %s network with transaction %x and block %d from %s network", network, txHash, seqno, oppositeNetwork)
 
-	blockCell, err := blockutils.FetchMasterchainBlockCell(context.Background(), oppositeTonClient, seqno)
+	blockIDExt, blockBOC, err := blockutils.FetchMasterchainBlockBOC(context.Background(), oppositeTonClient, seqno)
 	if err != nil {
 		return fmt.Errorf("failed to fetch masterchain block: %w", err)
+	}
+
+	blockCell, err := cell.FromBOC(blockBOC)
+	if err != nil {
+		return fmt.Errorf("failed to parse block BOC: %w", err)
 	}
 
 	txProofCell, tx, err := txutils.BuildTxProof(blockCell, txHash)
@@ -77,11 +83,29 @@ func runSendCheckTx(cmd *cobra.Command, args []string) error {
 
 	tx.Hash = txHash
 
+	signaturesMap, err := GetBlockSignatures(seqno)
+	if err != nil {
+		return fmt.Errorf("failed to get block signatures: %w", err)
+	}
+	signaturesDict := SignaturesMapToDict(signaturesMap)
+
+	blockProof, err := blockutils.BuildBlockProof(blockBOC)
+	if err != nil {
+		return fmt.Errorf("failed to build block proof: %w", err)
+	}
+
+	currentBlockCell := cell.BeginCell().MustStoreRef(
+		cell.BeginCell().
+			MustStoreSlice(blockIDExt.FileHash, 256).
+			MustStoreRef(blockProof).
+			EndCell(),
+	).MustStoreDict(signaturesDict).EndCell()
+
 	sendTx, blockIDExt, err := txChecker.SendCheckTx(
 		context.Background(),
 		txchecker.TxToCell(tx),
 		txProofCell,
-		blockCell,
+		currentBlockCell,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to send check tx: %w", err)
