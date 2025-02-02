@@ -83,7 +83,7 @@ func runSendCheckTx(cmd *cobra.Command, args []string) error {
 
 	tx.Hash = txHash
 
-	signaturesMap, err := GetBlockSignatures(seqno)
+	signaturesMap, err := GetBlockSignatures(seqno, oppositeTonClient)
 	if err != nil {
 		return fmt.Errorf("failed to get block signatures: %w", err)
 	}
