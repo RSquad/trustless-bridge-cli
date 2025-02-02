@@ -17,16 +17,13 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 
-	"github.com/rsquad/trustless-bridge-cli/internal/data"
 	"github.com/rsquad/trustless-bridge-cli/internal/tonclient"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/xssnick/tonutils-go/liteclient"
 )
 
 var cfgFile string
@@ -81,23 +78,8 @@ func initConfig() {
 		network = "testnet"
 	}
 
-	var configDataStr string
-	switch network {
-	case "testnet":
-		configDataStr = data.TestnetConfig
-	case "fastnet":
-		configDataStr = data.FastnetConfig
-	default:
-		log.Fatalf("unknown network: %s", network)
-	}
-
-	var globalConfig liteclient.GlobalConfig
-	err := json.Unmarshal([]byte(configDataStr), &globalConfig)
-	if err != nil {
-		log.Fatalf("failed to parse config data: %v", err)
-	}
-
-	tonClient, err = tonclient.NewTonClient(&globalConfig)
+	var err error
+	tonClient, err = tonclient.NewTonClientNetwork(network)
 	if err != nil {
 		log.Fatalf("failed to create TonClient: %v", err)
 	}

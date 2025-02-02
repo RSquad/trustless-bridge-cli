@@ -22,6 +22,7 @@ import (
 
 	"github.com/rsquad/trustless-bridge-cli/internal/blockutils"
 	"github.com/rsquad/trustless-bridge-cli/internal/liteclient"
+	"github.com/rsquad/trustless-bridge-cli/internal/tonclient"
 	"github.com/rsquad/trustless-bridge-cli/internal/txchecker"
 	"github.com/spf13/cobra"
 	"github.com/xssnick/tonutils-go/tvm/cell"
@@ -30,7 +31,10 @@ import (
 var deployAllCmd = &cobra.Command{
 	Use:   "all",
 	Short: "Deploy system contracts",
-	RunE:  runDeployAll,
+	Long: `This command deploys system contracts to the opposite network.
+If the network is specified as testnet, the system will fetch a block from testnet
+and deploy the system in fastnet using the block from testnet, and vice versa.`,
+	RunE: runDeployAll,
 }
 
 func init() {
@@ -44,6 +48,10 @@ func runDeployAll(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get trusted block seqno: %w", err)
 	}
+	network, err := cmd.Flags().GetString("network")
+	if err != nil {
+		network = "testnet"
+	}
 
 	trustedBlock, err := blockutils.FetchMasterchainBlock(context.Background(), tonClient, trustedBlockSeqno)
 	if err != nil {
@@ -51,7 +59,7 @@ func runDeployAll(cmd *cobra.Command, args []string) error {
 	}
 
 	if !trustedBlock.BlockInfo.KeyBlock {
-		fmt.Printf("trusted block is not a key block")
+		fmt.Printf("given trusted block is not a key block: %v\n", trustedBlock.BlockInfo.SeqNo)
 		fmt.Printf("switch to last key block with seqno: %v\n", trustedBlock.BlockInfo.PrevKeyBlockSeqno)
 		trustedBlockSeqno = trustedBlock.BlockInfo.PrevKeyBlockSeqno
 
@@ -75,9 +83,19 @@ func runDeployAll(cmd *cobra.Command, args []string) error {
 		)
 	}
 
+	oppositeNetwork := "testnet"
+	if network == "testnet" {
+		oppositeNetwork = "fastnet"
+	}
+
+	oppositeTonClient, err := tonclient.NewTonClientNetwork(oppositeNetwork)
+	if err != nil {
+		return fmt.Errorf("failed to create TonClient: %w", err)
+	}
+
 	liteClientAddr, err := liteclient.DeployLiteClient(
 		context.Background(),
-		tonClient,
+		oppositeTonClient,
 		&liteclient.InitData{
 			EpochHash:             epochHash,
 			ValidatorsTotalWeight: validatorsTotalWeight,
@@ -90,7 +108,7 @@ func runDeployAll(cmd *cobra.Command, args []string) error {
 
 	txCheckerAddr, err := txchecker.DeployTxChecker(
 		context.Background(),
-		tonClient,
+		oppositeTonClient,
 		&txchecker.InitData{LiteClientAddr: liteClientAddr},
 	)
 	if err != nil {

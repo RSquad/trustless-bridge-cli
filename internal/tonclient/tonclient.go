@@ -2,9 +2,12 @@ package tonclient
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
+	"github.com/rsquad/trustless-bridge-cli/internal/data"
 	"github.com/spf13/viper"
 	"github.com/xssnick/tonutils-go/liteclient"
 	"github.com/xssnick/tonutils-go/tl"
@@ -28,6 +31,26 @@ func NewTonClient(cfg *liteclient.GlobalConfig) (*TonClient, error) {
 	api, _ := apiWrapped.(*ton.APIClient)
 
 	return &TonClient{connPool: connPool, API: api}, nil
+}
+
+func NewTonClientNetwork(network string) (*TonClient, error) {
+	var configDataStr string
+	switch network {
+	case "testnet":
+		configDataStr = data.TestnetConfig
+	case "fastnet":
+		configDataStr = data.FastnetConfig
+	default:
+		log.Fatalf("unknown network: %s", network)
+	}
+
+	var globalConfig liteclient.GlobalConfig
+	err := json.Unmarshal([]byte(configDataStr), &globalConfig)
+	if err != nil {
+		log.Fatalf("failed to parse config data: %v", err)
+	}
+
+	return NewTonClient(&globalConfig)
 }
 
 func (tc *TonClient) GetBlockProofExt(ctx context.Context, known, target *ton.BlockIDExt) (*ton.PartialBlockProof, error) {
