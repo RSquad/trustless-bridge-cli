@@ -17,17 +17,21 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 
+	"github.com/rsquad/trustless-bridge-cli/internal/data"
 	"github.com/rsquad/trustless-bridge-cli/internal/tonclient"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/xssnick/tonutils-go/liteclient"
 )
 
 var cfgFile string
 var tonClient *tonclient.TonClient
-
+var network string
 var rootCmd = &cobra.Command{
 	Use:   "trustless-bridge-cli",
 	Short: "A CLI tool for data preparation and retrieval for the Trustless Bridge",
@@ -50,12 +54,10 @@ func init() {
 		"config file (default is $HOME/.trustless-bridge-cli.yaml)",
 	)
 
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.PersistentFlags().StringVar(&network, "network", "testnet", "TON network (testnet or mainnet)")
 }
 
 func initConfig() {
-	viper.SetDefault("ton_config_url", "https://ton-blockchain.github.io/testnet-global.config.json")
-
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 	} else {
@@ -73,14 +75,30 @@ func initConfig() {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
 
-	tonClientURL := viper.GetString("ton_config_url")
-	if tonClientURL == "" {
-		panic("TonClient URL not set in config")
+	if network != "testnet" && network != "fastnet" {
+		fmt.Printf("invalid network: %s", network)
+		fmt.Println("using testnet")
+		network = "testnet"
 	}
 
-	var err error
-	tonClient, err = tonclient.NewTonClient(tonClientURL)
+	var configDataStr string
+	switch network {
+	case "testnet":
+		configDataStr = data.TestnetConfig
+	case "fastnet":
+		configDataStr = data.FastnetConfig
+	default:
+		log.Fatalf("unknown network: %s", network)
+	}
+
+	var globalConfig liteclient.GlobalConfig
+	err := json.Unmarshal([]byte(configDataStr), &globalConfig)
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to parse config data: %v", err)
+	}
+
+	tonClient, err = tonclient.NewTonClient(&globalConfig)
+	if err != nil {
+		log.Fatalf("failed to create TonClient: %v", err)
 	}
 }

@@ -14,18 +14,23 @@ A set of command-line tools for interacting with a **trustless bridge** in the T
   Extracts and returns block signatures for a specified block in the masterchain. Supports output in `json`, `bin`, or `hex` format.
 - **Transaction Proof**  
   Constructs a proof for a transaction contained within a specified block. Supports output in `hex` or `bin` format.
+- **Deploy Contracts**  
+  Deploy contracts using the `deploy` command.
 
 ## Configuration
 
-By default, the utilities look for a configuration file named `.trustless-bridge-cli.yaml` in the user's home directory.
+By default, the utilities look for a configuration file named `.trustless-bridge-cli.yaml` in the user's home directory. You can also specify a custom configuration file path using the global `--config` flag.
 
-Below is a typical configuration file example:
+There is a sample `.trustless-bridge-cli.yml` file in the root of the repository that you can use as a reference.
 
-```yaml
-ton_config_url: "https://ton-blockchain.github.io/testnet-global.config.json"
-```
+### Configuration Keys
 
-This `ton_config_url` configures the TON client with the necessary blockchain settings.
+- **`wallet_mnemonic`**: This key is used to specify the mnemonic phrase for the wallet.
+- **`wallet_version`**: This key indicates the version of the wallet being used, which include: v1r1, v1r2, v1r3, v2r1, v2r2, v3r1, v3r2, v3, v4r1, v4r2, v5r1beta, v5r1final.
+- **`lite_client_code`**: This key is used to specify the code for the lite client, which is necessary for deploying the lite client contract.
+- **`tx_checker_code`**: This key is used to specify the code for the transaction checker, which is necessary for deploying the transaction checker contract.
+
+These keys are required for executing the `deploy`, `run`, and `get` commands. If you don't use such commands, you can leave them empty.
 
 ## Installation
 
@@ -58,12 +63,16 @@ Make sure you have Go installed (version 1.23.1 or later).
 
 ## Usage
 
+### Network Selection
+
+You can specify the network using the global `--network` flag, which can be either `testnet` or `fastnet`. The default is `testnet`.
+
 ### Running the CLI
 
 After building or installing, you can run the utility:
 
 ```bash
-trustless-bridge-cli block fetch -s <seqno> -w <workchain> -f <output-format>
+trustless-bridge-cli block fetch -s <seqno> -w <workchain> -f <output-format> --network <network>
 ```
 
 Where:
@@ -71,6 +80,7 @@ Where:
 - `<seqno>` is the block's sequence number.
 - `<workchain>` is the workchain ID.
 - `<output-format>` can be `json`, `bin`, or `hex`.
+- `<network>` is the network selection, which can be `testnet` or `fastnet`. The default is `testnet`.
 
 Alternatively, you can run it directly with `go run` (no need to build beforehand):
 
