@@ -2,14 +2,17 @@ package tonclient
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"sort"
+	"log"
+	"strings"
 
+	"github.com/rsquad/trustless-bridge-cli/internal/data"
+	"github.com/spf13/viper"
 	"github.com/xssnick/tonutils-go/liteclient"
 	"github.com/xssnick/tonutils-go/tl"
-	"github.com/xssnick/tonutils-go/tlb"
 	"github.com/xssnick/tonutils-go/ton"
-	"github.com/xssnick/tonutils-go/tvm/cell"
+	"github.com/xssnick/tonutils-go/ton/wallet"
 )
 
 type TonClient struct {
@@ -17,10 +20,10 @@ type TonClient struct {
 	API      *ton.APIClient
 }
 
-func NewTonClient(configUrl string) (*TonClient, error) {
+func NewTonClient(cfg *liteclient.GlobalConfig) (*TonClient, error) {
 	connPool := liteclient.NewConnectionPool()
 
-	err := connPool.AddConnectionsFromConfigUrl(context.Background(), configUrl)
+	err := connPool.AddConnectionsFromConfig(context.Background(), cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -28,6 +31,26 @@ func NewTonClient(configUrl string) (*TonClient, error) {
 	api, _ := apiWrapped.(*ton.APIClient)
 
 	return &TonClient{connPool: connPool, API: api}, nil
+}
+
+func NewTonClientNetwork(network string) (*TonClient, error) {
+	var configDataStr string
+	switch network {
+	case "testnet":
+		configDataStr = data.TestnetConfig
+	case "fastnet":
+		configDataStr = data.FastnetConfig
+	default:
+		log.Fatalf("unknown network: %s", network)
+	}
+
+	var globalConfig liteclient.GlobalConfig
+	err := json.Unmarshal([]byte(configDataStr), &globalConfig)
+	if err != nil {
+		log.Fatalf("failed to parse config data: %v", err)
+	}
+
+	return NewTonClient(&globalConfig)
 }
 
 func (tc *TonClient) GetBlockProofExt(ctx context.Context, known, target *ton.BlockIDExt) (*ton.PartialBlockProof, error) {
@@ -66,74 +89,39 @@ func (tc *TonClient) GetBlockBOC(ctx context.Context, block *ton.BlockIDExt) ([]
 	panic("should not happen")
 }
 
-func (tc *TonClient) GetMainValidators(validatorSet tlb.ValidatorSetAny) (
-	[]*tlb.ValidatorAddr, error,
-) {
-	var validatorsNum int
-	var validatorsListDict *cell.Dictionary
-
-	var definedWeight *uint64
-	switch t := validatorSet.Validators.(type) {
-	case tlb.ValidatorSet:
-		validatorsNum = int(t.Main)
-		validatorsListDict = t.List
-	case tlb.ValidatorSetExt:
-		definedWeight = &t.TotalWeight
-		validatorsNum = int(t.Main)
-		validatorsListDict = t.List
-	default:
-		return nil, fmt.Errorf("unknown validator set type")
+func (tc *TonClient) GetWallet() *wallet.Wallet {
+	mnemonic := viper.GetString("wallet_mnemonic")
+	if mnemonic == "" {
+		panic("wallet_mnemonic is not set")
+	}
+	walletVersion := viper.GetString("wallet_version")
+	if walletVersion == "" {
+		panic("wallet_version is not set")
 	}
 
-	type validatorWithKey struct {
-		addr *tlb.ValidatorAddr
-		key  uint16
+	versionMap := map[string]wallet.Version{
+		"v1r1":      wallet.V1R1,
+		"v1r2":      wallet.V1R2,
+		"v1r3":      wallet.V1R3,
+		"v2r1":      wallet.V2R1,
+		"v2r2":      wallet.V2R2,
+		"v3r1":      wallet.V3R1,
+		"v3r2":      wallet.V3R2,
+		"v3":        wallet.V3,
+		"v4r1":      wallet.V4R1,
+		"v4r2":      wallet.V4R2,
+		"v5r1beta":  wallet.V5R1Beta,
+		"v5r1final": wallet.V5R1Final,
 	}
 
-	kvs, err := validatorsListDict.LoadAll()
+	version, exists := versionMap[strings.ToLower(walletVersion)]
+	if !exists {
+		panic(fmt.Sprintf("unsupported wallet type: %s", walletVersion))
+	}
+
+	w, err := wallet.FromSeed(tc.API, strings.Split(mnemonic, " "), version)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load validators list dict: %w", err)
+		panic(err)
 	}
-
-	var totalWeight uint64
-	var validatorsKeys = make([]validatorWithKey, len(kvs))
-	for i, kv := range kvs {
-		var val tlb.ValidatorAddr
-		if err := tlb.LoadFromCell(&val, kv.Value); err != nil {
-			return nil, fmt.Errorf("failed to parse validator addr: %w", err)
-		}
-
-		key, err := kv.Key.LoadUInt(16)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse validator key: %w", err)
-		}
-
-		totalWeight += val.Weight
-		validatorsKeys[i].addr = &val
-		validatorsKeys[i].key = uint16(key)
-	}
-
-	if definedWeight != nil && totalWeight != *definedWeight {
-		return nil, fmt.Errorf("incorrect sum of weights")
-	}
-
-	if len(validatorsKeys) == 0 {
-		return nil, fmt.Errorf("zero validators")
-	}
-
-	sort.Slice(validatorsKeys, func(i, j int) bool {
-		return validatorsKeys[i].key < validatorsKeys[j].key
-	})
-
-	if validatorsNum > len(validatorsKeys) {
-		validatorsNum = len(validatorsKeys)
-	}
-
-	var validators = make([]*tlb.ValidatorAddr, validatorsNum)
-
-	for i := 0; i < validatorsNum; i++ {
-		validators[i] = validatorsKeys[i].addr
-	}
-
-	return validators, nil
+	return w
 }

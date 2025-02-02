@@ -25,6 +25,7 @@ import (
 	"os"
 	"sort"
 
+	"github.com/rsquad/trustless-bridge-cli/internal/blockutils"
 	"github.com/spf13/cobra"
 	"github.com/xssnick/tonutils-go/adnl"
 	"github.com/xssnick/tonutils-go/tl"
@@ -103,7 +104,7 @@ func runBlockSignatures(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	validators, err := tonClient.GetMainValidators(validatorSet)
+	validators, _, _, err := blockutils.ExtractMainValidators(prevKeyBlock, tonClient)
 	if err != nil {
 		panic(err)
 	}

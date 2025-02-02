@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/rsquad/trustless-bridge-cli/internal/tonclient"
@@ -27,7 +28,7 @@ import (
 
 var cfgFile string
 var tonClient *tonclient.TonClient
-
+var network string
 var rootCmd = &cobra.Command{
 	Use:   "trustless-bridge-cli",
 	Short: "A CLI tool for data preparation and retrieval for the Trustless Bridge",
@@ -50,12 +51,10 @@ func init() {
 		"config file (default is $HOME/.trustless-bridge-cli.yaml)",
 	)
 
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.PersistentFlags().StringVar(&network, "network", "testnet", "TON network (testnet or mainnet)")
 }
 
 func initConfig() {
-	viper.SetDefault("ton_config_url", "https://ton-blockchain.github.io/testnet-global.config.json")
-
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 	} else {
@@ -73,14 +72,15 @@ func initConfig() {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
 
-	tonClientURL := viper.GetString("ton_config_url")
-	if tonClientURL == "" {
-		panic("TonClient URL not set in config")
+	if network != "testnet" && network != "fastnet" {
+		fmt.Printf("invalid network: %s", network)
+		fmt.Println("using testnet")
+		network = "testnet"
 	}
 
 	var err error
-	tonClient, err = tonclient.NewTonClient(tonClientURL)
+	tonClient, err = tonclient.NewTonClientNetwork(network)
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to create TonClient: %v", err)
 	}
 }

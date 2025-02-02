@@ -36,8 +36,6 @@ func init() {
 	blockCmd.AddCommand(blockProofCmd)
 	blockProofCmd.Flags().Uint32("from-seqno", 0, "From block seqno")
 	blockProofCmd.Flags().Uint32("to-seqno", 0, "To block seqno")
-	// blockProofCmd.Flags().Int32("to-workchain", -1, "To workchain")
-	// blockProofCmd.Flags().Int64("to-shard", 0, "To shard")
 	blockProofCmd.Flags().StringP("output-format", "f", "bin", "Output format: bin, hex")
 	blockProofCmd.MarkFlagRequired("from-seqno")
 	blockProofCmd.MarkFlagRequired("to-seqno")
@@ -56,14 +54,6 @@ func runBlockProof(cmd *cobra.Command, args []string) {
 	if err != nil {
 		panic(err)
 	}
-	// toShard, err := cmd.Flags().GetInt64("to-shard")
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// toWorkchain, err := cmd.Flags().GetInt32("to-workchain")
-	// if err != nil {
-	// 	panic(err)
-	// }
 	toWorkchain := int32(-1)
 	fromWorkchain := int32(-1)
 
