@@ -26,6 +26,7 @@ import (
 	"sort"
 
 	"github.com/rsquad/trustless-bridge-cli/internal/blockutils"
+	"github.com/rsquad/trustless-bridge-cli/internal/tonclient"
 	"github.com/spf13/cobra"
 	"github.com/xssnick/tonutils-go/adnl"
 	"github.com/xssnick/tonutils-go/tl"
@@ -61,7 +62,7 @@ func runBlockSignatures(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	signaturesMap, err := GetBlockSignatures(seqno)
+	signaturesMap, err := GetBlockSignatures(seqno, tonClient)
 	if err != nil {
 		panic(err)
 	}
@@ -87,7 +88,7 @@ func runBlockSignatures(cmd *cobra.Command, args []string) {
 	}
 }
 
-func GetBlockSignatures(seqno uint32) (map[[32]byte][]byte, error) {
+func GetBlockSignatures(seqno uint32, tonClient *tonclient.TonClient) (map[[32]byte][]byte, error) {
 	workchain := int32(-1)
 
 	blockIDExt, err := tonClient.API.LookupBlock(context.Background(), workchain, 0, seqno)
