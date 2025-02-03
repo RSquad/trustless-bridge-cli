@@ -9,13 +9,21 @@ import (
 	"github.com/spf13/viper"
 	"github.com/xssnick/tonutils-go/address"
 	"github.com/xssnick/tonutils-go/tlb"
+	"github.com/xssnick/tonutils-go/ton"
+	"github.com/xssnick/tonutils-go/ton/wallet"
 	"github.com/xssnick/tonutils-go/tvm/cell"
+)
+
+const (
+	opCodeNewKeyBlock       = 0x11a78ffe
+	opCodeNewKeyBlockAnswer = 0xff8ff4e1
+	opCodeCheckBlock        = 0x8eaa9d76
+	opCodeCheckBlockAnswer  = 0xce02b807
 )
 
 type LiteClientContract struct {
 	Addr      *address.Address
 	tonClient *tonclient.TonClient
-	ctx       context.Context
 }
 
 type StateInit struct {
@@ -40,9 +48,56 @@ func InitDataToCell(initData *InitData) *cell.Cell {
 func New(
 	addr *address.Address,
 	tonClient *tonclient.TonClient,
-	ctx context.Context,
 ) *LiteClientContract {
-	return &LiteClientContract{addr, tonClient, ctx}
+	return &LiteClientContract{addr, tonClient}
+}
+
+func (c *LiteClientContract) SendNewKeyBlock(
+	ctx context.Context,
+	fileHash []byte,
+	blockProofCell *cell.Cell,
+	signaturesDict *cell.Dictionary,
+) (*tlb.Transaction, *ton.BlockIDExt, error) {
+	w := c.tonClient.GetWallet()
+
+	payload := cell.BeginCell().
+		MustStoreUInt(opCodeNewKeyBlock, 32).
+		MustStoreUInt(0, 64).
+		MustStoreRef(cell.BeginCell().
+			MustStoreSlice(fileHash, 256).
+			MustStoreRef(blockProofCell).
+			EndCell()).
+		MustStoreDict(signaturesDict).
+		EndCell()
+
+	message := wallet.SimpleMessage(c.Addr, tlb.MustFromTON("0.1"), payload)
+
+	return w.SendWaitTransaction(ctx, message)
+}
+
+func (c *LiteClientContract) SendCheckBlock(
+	ctx context.Context,
+	fileHash []byte,
+	blockProofCell *cell.Cell,
+	signaturesDict *cell.Dictionary,
+) (*tlb.Transaction, *ton.BlockIDExt, error) {
+	w := c.tonClient.GetWallet()
+
+	payload := cell.BeginCell().
+		MustStoreUInt(opCodeCheckBlock, 32).
+		MustStoreUInt(0, 64).
+		MustStoreRef(
+			cell.BeginCell().
+				MustStoreSlice(fileHash, 256).
+				MustStoreRef(blockProofCell).
+				EndCell(),
+		).
+		MustStoreDict(signaturesDict).
+		EndCell()
+
+	message := wallet.SimpleMessage(c.Addr, tlb.MustFromTON("0.1"), payload)
+
+	return w.SendWaitTransaction(ctx, message)
 }
 
 func DeployLiteClient(ctx context.Context, tonClient *tonclient.TonClient, initData *InitData) (*address.Address, error) {

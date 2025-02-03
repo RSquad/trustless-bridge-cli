@@ -10,7 +10,9 @@ A set of command-line tools for interacting with a **trustless bridge** in the T
 - **Block Signatures**: Extracts block signatures.
 - **Transaction Proof**: Constructs a proof for a transaction.
 - **Deploy Contracts**: Deploy contracts using the `deploy` command.
-- **Check Transaction**: Sends a `check_transaction` message to verify transactions.
+- **Send Check Transaction**: Sends a `check_transaction` message to verify transactions.
+- **Send New Key Block**: Sends a `new_key_block` message to a LiteClient.
+- **Send Check Block**: Sends a `check_block` message to verify a block.
 
 ## Configuration
 
@@ -113,5 +115,25 @@ go run main.go send check-tx -a EQCzBNUbnja6DRzZYwPj6HXS2IwHE4Oz9zYpun9MxXNmsHJN
 ```
 
 This command will fetch block `706883` and transaction `0908bfb9eb41b3186e63ab043142a3c4d493bfbaa3013094f17a15d3575a3138` from **fastnet**, build proof, construct the message body `check_transaction#91d555f7 transaction:^Cell proof:^Cell current_block:^Cell = InternalMsgBody;`, and send it to the **testnet** to the address `EQCzBNUbnja6DRzZYwPj6HXS2IwHE4Oz9zYpun9MxXNmsHJN`.
+
+**Note:** The command fetches data from **fastnet** and sends it to **testnet** if the `--network` flag is specified as **testnet** and vice versa.
+
+### Send Check Block
+
+```bash
+go run main.go send check-block -s 706883 -a EQDKMJuFSh4fWyciNGzDZU243rmBG80-uMMkFCMWWk98lA1X --network testnet --config .env.yaml
+```
+
+This command sends a `check_block` message for block `706883` from **fastnet** to the address `EQDKMJuFSh4fWyciNGzDZU243rmBG80-uMMkFCMWWk98lA1X` on the **testnet**.
+
+**Note:** The command fetches data from **fastnet** and sends it to **testnet** if the `--network` flag is specified as **testnet** and vice versa.
+
+### Send New Key Block
+
+```bash
+go run main.go send new-key-block -s 680939 -a EQDKMJuFSh4fWyciNGzDZU243rmBG80-uMMkFCMWWk98lA1X --network testnet --config .env.yaml
+```
+
+This command sends a `new_key_block` message for block `680939` from **fastnet** to the address `EQDKMJuFSh4fWyciNGzDZU243rmBG80-uMMkFCMWWk98lA1X` on the **testnet**.
 
 **Note:** The command fetches data from **fastnet** and sends it to **testnet** if the `--network` flag is specified as **testnet** and vice versa.
