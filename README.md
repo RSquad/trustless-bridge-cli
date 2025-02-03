@@ -4,18 +4,13 @@ A set of command-line tools for interacting with a **trustless bridge** in the T
 
 ## Features
 
-- **Fetch Block**  
-  Retrieves a block from the blockchain by its `seqno` and `workchain`. Supports output in `json`, `bin`, or `hex` format.
-- **Prune Block**  
-  Removes unnecessary data from a block to reduce its size. Supports output in `bin` or `hex` format.
-- **Block Proof**  
-  Generates a proof from one block to another, loaded from a specified file. Supports output in `json`, `bin`, or `hex` format. Currently works only with blocks from the masterchain.
-- **Block Signatures**  
-  Extracts and returns block signatures for a specified block in the masterchain. Supports output in `json`, `bin`, or `hex` format.
-- **Transaction Proof**  
-  Constructs a proof for a transaction contained within a specified block. Supports output in `hex` or `bin` format.
-- **Deploy Contracts**  
-  Deploy contracts using the `deploy` command.
+- **Fetch Block**: Retrieves a block from the blockchain.
+- **Prune Block**: Removes unnecessary data from a block.
+- **Block Proof**: Generates a proof from one block to another.
+- **Block Signatures**: Extracts block signatures.
+- **Transaction Proof**: Constructs a proof for a transaction.
+- **Deploy Contracts**: Deploy contracts using the `deploy` command.
+- **Check Transaction**: Sends a `check_transaction` message to verify transactions.
 
 ## Configuration
 
@@ -75,13 +70,6 @@ After building or installing, you can run the utility:
 trustless-bridge-cli block fetch -s <seqno> -w <workchain> -f <output-format> --network <network>
 ```
 
-Where:
-
-- `<seqno>` is the block's sequence number.
-- `<workchain>` is the workchain ID.
-- `<output-format>` can be `json`, `bin`, or `hex`.
-- `<network>` is the network selection, which can be `testnet` or `fastnet`. The default is `testnet`.
-
 Alternatively, you can run it directly with `go run` (no need to build beforehand):
 
 ```bash
@@ -105,3 +93,25 @@ To view help for any command, use `--help`. For example:
 ```bash
 trustless-bridge-cli block --help
 ```
+
+## Main Scripts
+
+### Deploy All
+
+```bash
+go run main.go deploy all -s 706883 --network testnet --config ./.trustless-bridge-cli.yaml
+```
+
+This command will fetch the nearest previous key block from the specified sequence number `706883` from **fastnet**, mark it as trusted, and deploy the **LiteClient** and **TxChecker** in the **testnet** with the trusted block.
+
+**Note:** The command fetches data from **fastnet** and deploys it to **testnet** if the `--network` flag is specified as **testnet** and vice versa.
+
+### Send Check Transaction
+
+```bash
+go run main.go send check-tx -a EQCzBNUbnja6DRzZYwPj6HXS2IwHE4Oz9zYpun9MxXNmsHJN -t 0908bfb9eb41b3186e63ab043142a3c4d493bfbaa3013094f17a15d3575a3138 -s 706883 --network testnet --config ./.trustless-bridge-cli.yaml
+```
+
+This command will fetch block `706883` and transaction `0908bfb9eb41b3186e63ab043142a3c4d493bfbaa3013094f17a15d3575a3138` from **fastnet**, build proof, construct the message body `check_transaction#91d555f7 transaction:^Cell proof:^Cell current_block:^Cell = InternalMsgBody;`, and send it to the **testnet** to the address `EQCzBNUbnja6DRzZYwPj6HXS2IwHE4Oz9zYpun9MxXNmsHJN`.
+
+**Note:** The command fetches data from **fastnet** and sends it to **testnet** if the `--network` flag is specified as **testnet** and vice versa.

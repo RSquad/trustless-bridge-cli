@@ -32,8 +32,8 @@ var deployAllCmd = &cobra.Command{
 	Use:   "all",
 	Short: "Deploy system contracts",
 	Long: `This command deploys system contracts to the opposite network.
-If the network is specified as testnet, the system will fetch a block from testnet
-and deploy the system in fastnet using the block from testnet, and vice versa.`,
+If the network is specified as testnet, the system will fetch a block from fastnet
+and deploy the system to testnet using the block from fastnet, and vice versa.`,
 	RunE: runDeployAll,
 }
 
@@ -52,8 +52,18 @@ func runDeployAll(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		network = "testnet"
 	}
+	oppositeNetwork := "testnet"
+	if network == "testnet" {
+		oppositeNetwork = "fastnet"
+	}
+	oppositeTonClient, err := tonclient.NewTonClientNetwork(oppositeNetwork)
+	if err != nil {
+		return fmt.Errorf("failed to create TonClient: %w", err)
+	}
 
-	trustedBlock, err := blockutils.FetchMasterchainBlock(context.Background(), tonClient, trustedBlockSeqno)
+	fmt.Printf("Attention: You are deploying contracts to the %s network with block %d from %s network\n", network, trustedBlockSeqno, oppositeNetwork)
+
+	trustedBlock, err := blockutils.FetchMasterchainBlock(context.Background(), oppositeTonClient, trustedBlockSeqno)
 	if err != nil {
 		return fmt.Errorf("failed to fetch masterchain block: %w", err)
 	}
@@ -63,13 +73,13 @@ func runDeployAll(cmd *cobra.Command, args []string) error {
 		fmt.Printf("switch to last key block with seqno: %v\n", trustedBlock.BlockInfo.PrevKeyBlockSeqno)
 		trustedBlockSeqno = trustedBlock.BlockInfo.PrevKeyBlockSeqno
 
-		trustedBlock, err = blockutils.FetchMasterchainBlock(context.Background(), tonClient, trustedBlockSeqno)
+		trustedBlock, err = blockutils.FetchMasterchainBlock(context.Background(), oppositeTonClient, trustedBlockSeqno)
 		if err != nil {
 			return fmt.Errorf("failed to fetch masterchain block: %w", err)
 		}
 	}
 
-	validators, validatorsTotalWeight, epochHash, err := blockutils.ExtractMainValidators(trustedBlock, tonClient)
+	validators, validatorsTotalWeight, epochHash, err := blockutils.ExtractMainValidators(trustedBlock, oppositeTonClient)
 	if err != nil {
 		return fmt.Errorf("failed to extract main validators: %w", err)
 	}
@@ -83,19 +93,9 @@ func runDeployAll(cmd *cobra.Command, args []string) error {
 		)
 	}
 
-	oppositeNetwork := "testnet"
-	if network == "testnet" {
-		oppositeNetwork = "fastnet"
-	}
-
-	oppositeTonClient, err := tonclient.NewTonClientNetwork(oppositeNetwork)
-	if err != nil {
-		return fmt.Errorf("failed to create TonClient: %w", err)
-	}
-
 	liteClientAddr, err := liteclient.DeployLiteClient(
 		context.Background(),
-		oppositeTonClient,
+		tonClient,
 		&liteclient.InitData{
 			EpochHash:             epochHash,
 			ValidatorsTotalWeight: validatorsTotalWeight,
@@ -108,7 +108,7 @@ func runDeployAll(cmd *cobra.Command, args []string) error {
 
 	txCheckerAddr, err := txchecker.DeployTxChecker(
 		context.Background(),
-		oppositeTonClient,
+		tonClient,
 		&txchecker.InitData{LiteClientAddr: liteClientAddr},
 	)
 	if err != nil {

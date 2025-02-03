@@ -60,67 +60,8 @@ func runBlockSignatures(cmd *cobra.Command, args []string) {
 	if err != nil {
 		panic(err)
 	}
-	workchain := int32(-1)
 
-	blockIDExt, err := tonClient.API.LookupBlock(context.Background(), workchain, 0, seqno)
-	if err != nil {
-		panic(err)
-	}
-	block, err := tonClient.API.GetBlockData(context.Background(), blockIDExt)
-	if err != nil {
-		panic(err)
-	}
-
-	prevBlockIDExt, err := tonClient.API.LookupBlock(
-		context.Background(),
-		block.BlockInfo.Shard.WorkchainID,
-		int64(block.BlockInfo.Shard.GetShardID()),
-		seqno-1,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	prevKeyBlockIDExt, err := tonClient.API.LookupBlock(
-		context.Background(),
-		block.BlockInfo.Shard.WorkchainID,
-		int64(block.BlockInfo.Shard.GetShardID()),
-		block.BlockInfo.PrevKeyBlockSeqno,
-	)
-	if err != nil {
-		panic(err)
-	}
-	prevKeyBlock, err := tonClient.API.GetBlockData(context.Background(), prevKeyBlockIDExt)
-	if err != nil {
-		panic(err)
-	}
-
-	validatorsRootCell, err := prevKeyBlock.Extra.Custom.ConfigParams.Config.Params.LoadValueByIntKey(big.NewInt(34))
-	if err != nil {
-		panic(err)
-	}
-	var validatorSet tlb.ValidatorSetAny
-	if err = tlb.LoadFromCell(&validatorSet, validatorsRootCell.MustLoadRef()); err != nil {
-		panic(err)
-	}
-
-	validators, _, _, err := blockutils.ExtractMainValidators(prevKeyBlock, tonClient)
-	if err != nil {
-		panic(err)
-	}
-
-	blockProof, err := tonClient.GetBlockProofExt(
-		context.Background(),
-		prevBlockIDExt,
-		blockIDExt,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	signatures := extractSignatures(blockProof)
-
-	signaturesMap, err := mapValidatorsToSignatures(validators, signatures)
+	signaturesMap, err := GetBlockSignatures(seqno)
 	if err != nil {
 		panic(err)
 	}
@@ -138,24 +79,81 @@ func runBlockSignatures(cmd *cobra.Command, args []string) {
 		}
 		fmt.Println(string(jsonData))
 	case "hex":
-		dict := cell.NewDict(256)
-		for key, value := range signaturesMap {
-			keyCell := cell.BeginCell().MustStoreSlice(key[:], 256).EndCell()
-			valueCell := cell.BeginCell().MustStoreSlice(value, 512).EndCell()
-			dict.Set(keyCell, valueCell)
-		}
-		fmt.Printf("%x\n", dict.AsCell().ToBOC())
+		fmt.Printf("%x\n", SignaturesMapToDict(signaturesMap).AsCell().ToBOC())
 	case "bin":
 		fallthrough
 	default:
-		dict := cell.NewDict(256)
-		for key, value := range signaturesMap {
-			keyCell := cell.BeginCell().MustStoreSlice(key[:], 256).EndCell()
-			valueCell := cell.BeginCell().MustStoreSlice(value, 512).EndCell()
-			dict.Set(keyCell, valueCell)
-		}
-		os.Stdout.Write(dict.AsCell().ToBOC())
+		os.Stdout.Write(SignaturesMapToDict(signaturesMap).AsCell().ToBOC())
 	}
+}
+
+func GetBlockSignatures(seqno uint32) (map[[32]byte][]byte, error) {
+	workchain := int32(-1)
+
+	blockIDExt, err := tonClient.API.LookupBlock(context.Background(), workchain, 0, seqno)
+	if err != nil {
+		return nil, err
+	}
+	block, err := tonClient.API.GetBlockData(context.Background(), blockIDExt)
+	if err != nil {
+		return nil, err
+	}
+
+	prevBlockIDExt, err := tonClient.API.LookupBlock(
+		context.Background(),
+		block.BlockInfo.Shard.WorkchainID,
+		int64(block.BlockInfo.Shard.GetShardID()),
+		seqno-1,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	prevKeyBlockIDExt, err := tonClient.API.LookupBlock(
+		context.Background(),
+		block.BlockInfo.Shard.WorkchainID,
+		int64(block.BlockInfo.Shard.GetShardID()),
+		block.BlockInfo.PrevKeyBlockSeqno,
+	)
+	if err != nil {
+		return nil, err
+	}
+	prevKeyBlock, err := tonClient.API.GetBlockData(context.Background(), prevKeyBlockIDExt)
+	if err != nil {
+		return nil, err
+	}
+
+	validatorsRootCell, err := prevKeyBlock.Extra.Custom.ConfigParams.Config.Params.LoadValueByIntKey(big.NewInt(34))
+	if err != nil {
+		return nil, err
+	}
+	var validatorSet tlb.ValidatorSetAny
+	if err = tlb.LoadFromCell(&validatorSet, validatorsRootCell.MustLoadRef()); err != nil {
+		return nil, err
+	}
+
+	validators, _, _, err := blockutils.ExtractMainValidators(prevKeyBlock, tonClient)
+	if err != nil {
+		return nil, err
+	}
+
+	blockProof, err := tonClient.GetBlockProofExt(
+		context.Background(),
+		prevBlockIDExt,
+		blockIDExt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	signatures := extractSignatures(blockProof)
+
+	signaturesMap, err := mapValidatorsToSignatures(validators, signatures)
+	if err != nil {
+		return nil, err
+	}
+
+	return signaturesMap, nil
 }
 
 func extractSignatures(proof *ton.PartialBlockProof) []ton.Signature {
@@ -222,4 +220,14 @@ func mapValidatorsToSignatures(
 	}
 
 	return minSignatures, nil
+}
+
+func SignaturesMapToDict(signaturesMap map[[32]byte][]byte) *cell.Dictionary {
+	dict := cell.NewDict(256)
+	for key, value := range signaturesMap {
+		keyCell := cell.BeginCell().MustStoreSlice(key[:], 256).EndCell()
+		valueCell := cell.BeginCell().MustStoreSlice(value, 512).EndCell()
+		dict.Set(keyCell, valueCell)
+	}
+	return dict
 }
