@@ -127,3 +127,38 @@ func DeployLiteClient(ctx context.Context, tonClient *tonclient.TonClient, wc by
 
 	return addr, err
 }
+
+func (c *LiteClientContract) GetStorage(
+	ctx context.Context,
+) (*InitData, error) {
+	res, err := c.tonClient.API.RunGetMethod(ctx, nil, c.Addr, "get_storage")
+	if err != nil {
+		// if contract exit code != 0 it will be treated as an error too
+		panic(err)
+	}
+
+	cell := res.MustCell(0).BeginParse()
+	epochHash := cell.MustLoadSlice(256)
+	validatorsTotalWeight := cell.MustLoadUInt(64)
+	validatorDict := cell.MustLoadDict(256)
+
+	return &InitData{
+		EpochHash:             epochHash,
+		ValidatorsTotalWeight: validatorsTotalWeight,
+		ValidatorDict:         validatorDict,
+	}, nil
+}
+
+func (c *LiteClientContract) GetValidators(
+	ctx context.Context,
+) (*cell.Dictionary, error) {
+	res, err := c.tonClient.API.RunGetMethod(ctx, nil, c.Addr, "get_validators")
+	if err != nil {
+		// if contract exit code != 0 it will be treated as an error too
+		panic(err)
+	}
+
+	validatorDict := res.MustCell(0).BeginParse().MustLoadDict(256)
+
+	return validatorDict, nil
+}
