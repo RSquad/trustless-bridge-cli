@@ -138,3 +138,20 @@ go run main.go send new-key-block -s 680939 -a EQDKMJuFSh4fWyciNGzDZU243rmBG80-u
 This command sends a `new_key_block` message for block `680939` from **fastnet** to the address `EQDKMJuFSh4fWyciNGzDZU243rmBG80-uMMkFCMWWk98lA1X` on the **testnet**.
 
 **Note:** The command fetches data from **fastnet** and sends it to **testnet** if the `--network` flag is specified as **testnet** and vice versa.
+
+## Example of usage
+
+### TON FASTNET
+
+LiteClient: Ef_cmIsszQinqjDnK4LIib3vSBE8Zhf-ytgRJDGispoD-Et5
+
+TxChecker: Ef8zZWfeh22ib982EIgo_FZM0n2Iym1WHFBRBA_H7BEfsoMK
+
+### TON TESTNET
+
+LiteClient: EQBGWoImJJ8Uw4Lz0b2yXjpOf31awQfXHJthrYB4zppnL3c1
+
+TxChecker: EQCEILr1N8ey9Ar-9OtnCq8A4v217lsE0pJuEZgrZOStAVVa
+
+Transaction history with demonstration of successful and unsuccessful checks of blocks and transactions:
+[testcases.md](https://github.com/RSquad/trustless-bridge-cli/blob/master/testcases.md)
