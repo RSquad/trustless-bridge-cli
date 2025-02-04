@@ -8,11 +8,11 @@ import (
 	"log"
 
 	"github.com/rsquad/trustless-bridge-cli/internal/tonclient"
+	"github.com/rsquad/trustless-bridge-cli/internal/wallet"
 	"github.com/spf13/viper"
 	"github.com/xssnick/tonutils-go/address"
 	"github.com/xssnick/tonutils-go/tlb"
 	"github.com/xssnick/tonutils-go/ton"
-	"github.com/xssnick/tonutils-go/ton/wallet"
 	"github.com/xssnick/tonutils-go/tvm/cell"
 )
 

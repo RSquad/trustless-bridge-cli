@@ -8,13 +8,13 @@ import (
 	"strings"
 
 	"github.com/rsquad/trustless-bridge-cli/internal/data"
+	"github.com/rsquad/trustless-bridge-cli/internal/wallet"
 	"github.com/spf13/viper"
 	"github.com/xssnick/tonutils-go/address"
 	"github.com/xssnick/tonutils-go/liteclient"
 	"github.com/xssnick/tonutils-go/tl"
 	"github.com/xssnick/tonutils-go/tlb"
 	"github.com/xssnick/tonutils-go/ton"
-	"github.com/xssnick/tonutils-go/ton/wallet"
 	"github.com/xssnick/tonutils-go/tvm/cell"
 )
 
@@ -101,6 +101,10 @@ func (tc *TonClient) GetWallet() *wallet.Wallet {
 	if walletVersion == "" {
 		panic("wallet_version is not set")
 	}
+	walletWc := viper.GetInt("wallet_workchain")
+	if walletWc != 0 && walletWc != -1 {
+		panic("wallet_workchain is not set correctly")
+	}
 
 	versionMap := map[string]wallet.Version{
 		"v1r1":      wallet.V1R1,
@@ -122,7 +126,7 @@ func (tc *TonClient) GetWallet() *wallet.Wallet {
 		panic(fmt.Sprintf("unsupported wallet type: %s", walletVersion))
 	}
 
-	w, err := wallet.FromSeed(tc.API, strings.Split(mnemonic, " "), version)
+	w, err := wallet.FromSeed(tc.API, strings.Split(mnemonic, " "), version, byte(walletWc))
 	if err != nil {
 		panic(err)
 	}
