@@ -60,7 +60,7 @@ func (c *TxCheckerContract) SendCheckTx(
 		MustStoreRef(blockCell).
 		EndCell()
 
-	message := wallet.SimpleMessage(c.Addr, tlb.MustFromTON("0.2"), payload)
+	message := wallet.SimpleMessage(c.Addr, tlb.MustFromTON("1"), payload)
 
 	return w.SendWaitTransaction(ctx, message)
 }
