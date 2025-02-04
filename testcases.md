@@ -5,6 +5,7 @@ Below is an example scenario:
 ### TON FASTNET
 
 LiteClient: Ef_cmIsszQinqjDnK4LIib3vSBE8Zhf-ytgRJDGispoD-Et5
+
 TxChecker: Ef8zZWfeh22ib982EIgo_FZM0n2Iym1WHFBRBA_H7BEfsoMK
 
 
@@ -81,7 +82,9 @@ Link to tx from lite_client to tx_checker:
 [link](http://109.236.91.95:8080/transaction?account=Ef8zZWfeh22ib982EIgo_FZM0n2Iym1WHFBRBA_H7BEfsoMK&lt=870717000007&hash=45E746F7661EB58A69A3A0F99DB6AF75E95ED7B3FE442AA0F37655C4E370E3FC)
 
 ### TON TESTNET
+
 LiteClient: EQBGWoImJJ8Uw4Lz0b2yXjpOf31awQfXHJthrYB4zppnL3c1
+
 TxChecker: EQCEILr1N8ey9Ar-9OtnCq8A4v217lsE0pJuEZgrZOStAVVa
 
 1. Deploy the system to testnet using key block 765944 from fastnet.
