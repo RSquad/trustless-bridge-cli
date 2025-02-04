@@ -22,7 +22,14 @@ func BuildBlockProof(blockBOC []byte) (*cell.Cell, error) {
 		return blockCell.CreateProof(rootSk)
 	}
 
-	rootSk, configSk := createKeyBlockProofSk()
+	configRefIndex := 3
+	if block.Extra.Custom.ShardHashes.IsEmpty() {
+		configRefIndex -= 1
+	}
+	if block.Extra.Custom.ShardFees.IsEmpty() {
+		configRefIndex -= 1
+	}
+	rootSk, configSk := createKeyBlockProofSk(configRefIndex)
 	_, config34Sk, err := block.Extra.Custom.ConfigParams.Config.Params.LoadValueWithProof(
 		cell.BeginCell().MustStoreUInt(34, 32).EndCell(),
 		configSk,
@@ -35,11 +42,11 @@ func BuildBlockProof(blockBOC []byte) (*cell.Cell, error) {
 	return blockCell.CreateProof(rootSk)
 }
 
-func createKeyBlockProofSk() (rootSk *cell.ProofSkeleton, configSk *cell.ProofSkeleton) {
+func createKeyBlockProofSk(configIdx int) (rootSk *cell.ProofSkeleton, configSk *cell.ProofSkeleton) {
 	rootSk = cell.CreateProofSkeleton()
 	extraSk := rootSk.ProofRef(3)
 	customSk := extraSk.ProofRef(3)
-	configSk = customSk.ProofRef(3)
+	configSk = customSk.ProofRef(configIdx)
 	return rootSk, configSk
 }
 

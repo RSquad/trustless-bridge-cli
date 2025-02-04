@@ -89,7 +89,7 @@ func runDeployAll(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	validators, validatorsTotalWeight, epochHash, err := blockutils.ExtractMainValidators(trustedBlock, oppositeTonClient)
+	validators, totalMainWeight, epochHash, err := blockutils.ExtractMainValidators(trustedBlock, oppositeTonClient)
 	if err != nil {
 		return fmt.Errorf("failed to extract main validators: %w", err)
 	}
@@ -109,7 +109,7 @@ func runDeployAll(cmd *cobra.Command, args []string) error {
 		wcb,
 		&liteclient.InitData{
 			EpochHash:             epochHash,
-			ValidatorsTotalWeight: validatorsTotalWeight,
+			ValidatorsTotalWeight: totalMainWeight,
 			ValidatorDict:         validatorDict,
 		},
 	)
