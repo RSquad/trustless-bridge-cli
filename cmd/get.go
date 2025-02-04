@@ -18,14 +18,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var deployCmd = &cobra.Command{
-	Use:   "deploy",
-	Short: "Deploy a contract",
+var getCmd = &cobra.Command{
+	Use:   "get",
+	Short: "Run a contract getter",
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(deployCmd)
+	rootCmd.AddCommand(getCmd)
+	getCmd.PersistentFlags().StringP("address", "a", "", "Address of the contract")
+	getCmd.MarkFlagRequired("address")
 }
