@@ -24,6 +24,7 @@ There is a sample `.trustless-bridge-cli.yml` file in the root of the repository
 
 - **`wallet_mnemonic`**: This key is used to specify the mnemonic phrase for the wallet.
 - **`wallet_version`**: This key indicates the version of the wallet being used, which include: v1r1, v1r2, v1r3, v2r1, v2r2, v3r1, v3r2, v3, v4r1, v4r2, v5r1beta, v5r1final.
+- **`wallet_workchain`**: This key is used to specify the workchain for the wallet, which is necessary for deploying the wallet contract.
 - **`lite_client_code`**: This key is used to specify the code for the lite client, which is necessary for deploying the lite client contract.
 - **`tx_checker_code`**: This key is used to specify the code for the transaction checker, which is necessary for deploying the transaction checker contract.
 
