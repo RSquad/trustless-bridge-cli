@@ -143,10 +143,9 @@ func (c *LiteClientContract) GetStorage(
 		return nil, fmt.Errorf("failed to get storage: %w", err)
 	}
 
-	cell := res.MustCell(0).BeginParse()
-	epochHash := cell.MustLoadSlice(256)
-	validatorsTotalWeight := cell.MustLoadUInt(64)
-	validatorDict := cell.MustLoadDict(256)
+	validatorDict := res.MustCell(0).AsDict(256)
+	validatorsTotalWeight := res.MustInt(1).Uint64()
+	epochHash := res.MustInt(2).Bytes()
 
 	return &InitData{
 		EpochHash:             epochHash,
@@ -168,7 +167,7 @@ func (c *LiteClientContract) GetValidators(
 		return nil, fmt.Errorf("failed to get validators: %w", err)
 	}
 
-	validatorDict := res.MustCell(0).BeginParse().MustLoadDict(256)
+	validatorDict := res.MustCell(0).AsDict(256)
 
 	return validatorDict, nil
 }
