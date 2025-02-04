@@ -70,7 +70,7 @@ func (c *LiteClientContract) SendNewKeyBlock(
 		MustStoreDict(signaturesDict).
 		EndCell()
 
-	message := wallet.SimpleMessage(c.Addr, tlb.MustFromTON("0.1"), payload)
+	message := wallet.SimpleMessage(c.Addr, tlb.MustFromTON("0.2"), payload)
 
 	return w.SendWaitTransaction(ctx, message)
 }
@@ -95,12 +95,12 @@ func (c *LiteClientContract) SendCheckBlock(
 		MustStoreDict(signaturesDict).
 		EndCell()
 
-	message := wallet.SimpleMessage(c.Addr, tlb.MustFromTON("0.1"), payload)
+	message := wallet.SimpleMessage(c.Addr, tlb.MustFromTON("0.2"), payload)
 
 	return w.SendWaitTransaction(ctx, message)
 }
 
-func DeployLiteClient(ctx context.Context, tonClient *tonclient.TonClient, initData *InitData) (*address.Address, error) {
+func DeployLiteClient(ctx context.Context, tonClient *tonclient.TonClient, wc byte, initData *InitData) (*address.Address, error) {
 	wallet := tonClient.GetWallet()
 
 	msgBody := cell.BeginCell().EndCell()
@@ -115,10 +115,15 @@ func DeployLiteClient(ctx context.Context, tonClient *tonclient.TonClient, initD
 		return nil, fmt.Errorf("failed to parse lite client code: %w", err)
 	}
 
-	addr, _, _, err := wallet.DeployContractWaitTransaction(context.Background(), tlb.MustFromTON("0.1"),
+	addr, _, _, err := tonclient.DeployContractWaitTransaction(
+		context.Background(),
+		wallet,
+		wc,
+		tlb.MustFromTON("0.2"),
 		msgBody,
 		codeCell,
-		InitDataToCell(initData))
+		InitDataToCell(initData),
+	)
 
 	return addr, err
 }
