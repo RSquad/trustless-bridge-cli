@@ -9,10 +9,13 @@ import (
 
 	"github.com/rsquad/trustless-bridge-cli/internal/data"
 	"github.com/spf13/viper"
+	"github.com/xssnick/tonutils-go/address"
 	"github.com/xssnick/tonutils-go/liteclient"
 	"github.com/xssnick/tonutils-go/tl"
+	"github.com/xssnick/tonutils-go/tlb"
 	"github.com/xssnick/tonutils-go/ton"
 	"github.com/xssnick/tonutils-go/ton/wallet"
+	"github.com/xssnick/tonutils-go/tvm/cell"
 )
 
 type TonClient struct {
@@ -124,4 +127,42 @@ func (tc *TonClient) GetWallet() *wallet.Wallet {
 		panic(err)
 	}
 	return w
+}
+
+func DeployContractWaitTransaction(
+	ctx context.Context,
+	w *wallet.Wallet,
+	wc byte,
+	amount tlb.Coins,
+	msgBody,
+	contractCode,
+	contractData *cell.Cell,
+) (*address.Address, *tlb.Transaction, *ton.BlockIDExt, error) {
+	state := &tlb.StateInit{
+		Data: contractData,
+		Code: contractCode,
+	}
+
+	stateCell, err := tlb.ToCell(state)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	addr := address.NewAddress(0, wc, stateCell.Hash())
+
+	tx, block, err := w.SendWaitTransaction(ctx, &wallet.Message{
+		Mode: wallet.PayGasSeparately + wallet.IgnoreErrors,
+		InternalMessage: &tlb.InternalMessage{
+			IHRDisabled: true,
+			Bounce:      false,
+			DstAddr:     addr,
+			Amount:      amount,
+			Body:        msgBody,
+			StateInit:   state,
+		},
+	})
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return addr, tx, block, nil
 }

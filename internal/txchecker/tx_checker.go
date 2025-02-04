@@ -60,7 +60,7 @@ func (c *TxCheckerContract) SendCheckTx(
 		MustStoreRef(blockCell).
 		EndCell()
 
-	message := wallet.SimpleMessage(c.Addr, tlb.MustFromTON("0.1"), payload)
+	message := wallet.SimpleMessage(c.Addr, tlb.MustFromTON("0.2"), payload)
 
 	return w.SendWaitTransaction(ctx, message)
 }
@@ -80,10 +80,15 @@ func DeployTxChecker(ctx context.Context, tonClient *tonclient.TonClient, initDa
 		return nil, fmt.Errorf("failed to parse tx checker code: %w", err)
 	}
 
-	addr, _, _, err := wallet.DeployContractWaitTransaction(context.Background(), tlb.MustFromTON("0.1"),
+	addr, _, _, err := tonclient.DeployContractWaitTransaction(
+		context.Background(),
+		wallet,
+		255, // workchain
+		tlb.MustFromTON("0.2"),
 		msgBody,
 		codeCell,
-		InitDataToCell(initData))
+		InitDataToCell(initData),
+	)
 
 	return addr, err
 }
