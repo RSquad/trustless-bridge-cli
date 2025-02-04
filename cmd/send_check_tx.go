@@ -94,12 +94,14 @@ func runSendCheckTx(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to build block proof: %w", err)
 	}
 
-	currentBlockCell := cell.BeginCell().MustStoreRef(
-		cell.BeginCell().
-			MustStoreSlice(blockIDExt.FileHash, 256).
-			MustStoreRef(blockProof).
-			EndCell(),
-	).MustStoreDict(signaturesDict).EndCell()
+	currentBlockCell := cell.BeginCell().
+		MustStoreRef(
+			cell.BeginCell().
+				MustStoreSlice(blockIDExt.FileHash, 256).
+				MustStoreRef(blockProof).
+				EndCell(),
+		).MustStoreRef(signaturesDict.AsCell()).
+		EndCell()
 
 	sendTx, blockIDExt, err := txChecker.SendCheckTx(
 		context.Background(),
