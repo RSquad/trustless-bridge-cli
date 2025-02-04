@@ -100,7 +100,7 @@ func (c *LiteClientContract) SendCheckBlock(
 	return w.SendWaitTransaction(ctx, message)
 }
 
-func DeployLiteClient(ctx context.Context, tonClient *tonclient.TonClient, initData *InitData) (*address.Address, error) {
+func DeployLiteClient(ctx context.Context, tonClient *tonclient.TonClient, wc byte, initData *InitData) (*address.Address, error) {
 	wallet := tonClient.GetWallet()
 
 	msgBody := cell.BeginCell().EndCell()
@@ -118,7 +118,7 @@ func DeployLiteClient(ctx context.Context, tonClient *tonclient.TonClient, initD
 	addr, _, _, err := tonclient.DeployContractWaitTransaction(
 		context.Background(),
 		wallet,
-		255, // workchain
+		wc,
 		tlb.MustFromTON("0.2"),
 		msgBody,
 		codeCell,

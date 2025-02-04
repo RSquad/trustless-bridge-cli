@@ -65,7 +65,7 @@ func (c *TxCheckerContract) SendCheckTx(
 	return w.SendWaitTransaction(ctx, message)
 }
 
-func DeployTxChecker(ctx context.Context, tonClient *tonclient.TonClient, initData *InitData) (*address.Address, error) {
+func DeployTxChecker(ctx context.Context, tonClient *tonclient.TonClient, wc byte, initData *InitData) (*address.Address, error) {
 	wallet := tonClient.GetWallet()
 
 	msgBody := cell.BeginCell().EndCell()
@@ -83,7 +83,7 @@ func DeployTxChecker(ctx context.Context, tonClient *tonclient.TonClient, initDa
 	addr, _, _, err := tonclient.DeployContractWaitTransaction(
 		context.Background(),
 		wallet,
-		255, // workchain
+		wc,
 		tlb.MustFromTON("0.2"),
 		msgBody,
 		codeCell,
