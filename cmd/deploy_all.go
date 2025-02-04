@@ -40,7 +40,9 @@ and deploy the system to testnet using the block from fastnet, and vice versa.`,
 func init() {
 	deployCmd.AddCommand(deployAllCmd)
 	deployAllCmd.Flags().Uint32P("trusted-block-seqno", "s", 0, "Trusted block seqno")
+	deployAllCmd.Flags().Uint8P("workchain", "w", 0, "Workchain")
 	deployAllCmd.MarkFlagRequired("trusted-block-seqno")
+	deployAllCmd.MarkFlagRequired("workchain")
 }
 
 func runDeployAll(cmd *cobra.Command, args []string) error {
@@ -59,6 +61,13 @@ func runDeployAll(cmd *cobra.Command, args []string) error {
 	oppositeTonClient, err := tonclient.NewTonClientNetwork(oppositeNetwork)
 	if err != nil {
 		return fmt.Errorf("failed to create TonClient: %w", err)
+	}
+	wc, err := cmd.Flags().GetUint8("workchain")
+	if err != nil {
+		return fmt.Errorf("failed to get workchain: %w", err)
+	}
+	if wc != 0 {
+		wc = 255
 	}
 
 	fmt.Printf("Attention: You are deploying contracts to the %s network with block %d from %s network\n", network, trustedBlockSeqno, oppositeNetwork)
@@ -96,6 +105,7 @@ func runDeployAll(cmd *cobra.Command, args []string) error {
 	liteClientAddr, err := liteclient.DeployLiteClient(
 		context.Background(),
 		tonClient,
+		wc,
 		&liteclient.InitData{
 			EpochHash:             epochHash,
 			ValidatorsTotalWeight: validatorsTotalWeight,
@@ -109,6 +119,7 @@ func runDeployAll(cmd *cobra.Command, args []string) error {
 	txCheckerAddr, err := txchecker.DeployTxChecker(
 		context.Background(),
 		tonClient,
+		wc,
 		&txchecker.InitData{LiteClientAddr: liteClientAddr},
 	)
 	if err != nil {
