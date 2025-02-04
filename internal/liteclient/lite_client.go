@@ -3,7 +3,9 @@ package liteclient
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/rsquad/trustless-bridge-cli/internal/tonclient"
 	"github.com/spf13/viper"
@@ -131,10 +133,14 @@ func DeployLiteClient(ctx context.Context, tonClient *tonclient.TonClient, wc by
 func (c *LiteClientContract) GetStorage(
 	ctx context.Context,
 ) (*InitData, error) {
-	res, err := c.tonClient.API.RunGetMethod(ctx, nil, c.Addr, "get_storage")
+	block, err := c.tonClient.API.GetMasterchainInfo(ctx)
 	if err != nil {
-		// if contract exit code != 0 it will be treated as an error too
-		panic(err)
+		return nil, fmt.Errorf("failed to get masterchain info: %w", err)
+	}
+
+	res, err := c.tonClient.API.RunGetMethod(ctx, block, c.Addr, "get_storage")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get storage: %w", err)
 	}
 
 	cell := res.MustCell(0).BeginParse()
@@ -152,13 +158,46 @@ func (c *LiteClientContract) GetStorage(
 func (c *LiteClientContract) GetValidators(
 	ctx context.Context,
 ) (*cell.Dictionary, error) {
-	res, err := c.tonClient.API.RunGetMethod(ctx, nil, c.Addr, "get_validators")
+	block, err := c.tonClient.API.GetMasterchainInfo(ctx)
 	if err != nil {
-		// if contract exit code != 0 it will be treated as an error too
-		panic(err)
+		return nil, fmt.Errorf("failed to get masterchain info: %w", err)
+	}
+
+	res, err := c.tonClient.API.RunGetMethod(ctx, block, c.Addr, "get_validators")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get validators: %w", err)
 	}
 
 	validatorDict := res.MustCell(0).BeginParse().MustLoadDict(256)
 
 	return validatorDict, nil
+}
+
+func ValidatorDictToJSON(dict *cell.Dictionary) (string, error) {
+	data := make(map[string]string)
+
+	log.Printf("dict: %v", dict)
+
+	kvs, err := dict.LoadAll()
+	log.Printf("kvs: %v", kvs)
+	if err != nil {
+		return "", fmt.Errorf("failed to load dict kvs: %w", err)
+	}
+
+	for _, kv := range kvs {
+		keyBytes := kv.Key.MustLoadSlice(256)
+		valueBytes := kv.Value.MustLoadSlice(64)
+
+		keyHex := hex.EncodeToString(keyBytes)
+		valueHex := hex.EncodeToString(valueBytes)
+
+		data[keyHex] = valueHex
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal dict to JSON: %w", err)
+	}
+
+	return string(jsonData), nil
 }
