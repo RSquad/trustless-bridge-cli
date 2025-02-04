@@ -18,14 +18,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var blockCmd = &cobra.Command{
-	Use:   "block",
-	Short: "Utilities for working with blocks",
+var deployCmd = &cobra.Command{
+	Use:   "deploy",
+	Short: "Deploy a contract",
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(blockCmd)
+	rootCmd.AddCommand(deployCmd)
 }

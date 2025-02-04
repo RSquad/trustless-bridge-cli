@@ -1,6 +1,4 @@
 /*
-Copyright © 2025 RSquad <hello@rsquad.io>
-
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -17,36 +15,94 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/xssnick/tonutils-go/ton"
+	"github.com/xssnick/tonutils-go/tvm/cell"
 )
 
-// blockProofCmd represents the proofBlock command
 var blockProofCmd = &cobra.Command{
 	Use:   "proof",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("proofBlock called")
-	},
+	Short: "Generate a proof for a block (currently works only with blocks from the masterchain)",
+	Run:   runBlockProof,
 }
 
 func init() {
 	blockCmd.AddCommand(blockProofCmd)
+	blockProofCmd.Flags().Uint32("from-seqno", 0, "From block seqno")
+	blockProofCmd.Flags().Uint32("to-seqno", 0, "To block seqno")
+	blockProofCmd.Flags().StringP("output-format", "f", "bin", "Output format: bin, hex")
+	blockProofCmd.MarkFlagRequired("from-seqno")
+	blockProofCmd.MarkFlagRequired("to-seqno")
+}
 
-	// Here you will define your flags and configuration settings.
+func runBlockProof(cmd *cobra.Command, args []string) {
+	outputFormat, err := cmd.Flags().GetString("output-format")
+	if err != nil {
+		panic(err)
+	}
+	fromSeqno, err := cmd.Flags().GetUint32("from-seqno")
+	if err != nil {
+		panic(err)
+	}
+	toSeqno, err := cmd.Flags().GetUint32("to-seqno")
+	if err != nil {
+		panic(err)
+	}
+	toWorkchain := int32(-1)
+	fromWorkchain := int32(-1)
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// blockProofCmd.PersistentFlags().String("foo", "", "A help for foo")
+	fromBlockIDExt, err := tonClient.API.LookupBlock(
+		context.Background(),
+		fromWorkchain,
+		0,
+		fromSeqno,
+	)
+	if err != nil {
+		panic(err)
+	}
+	toBlockIDExt, err := tonClient.API.LookupBlock(
+		context.Background(),
+		toWorkchain,
+		0,
+		toSeqno,
+	)
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// blockProofCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	if err != nil {
+		panic(err)
+	}
+
+	blockProof, err := tonClient.API.GetBlockProof(
+		context.Background(),
+		fromBlockIDExt,
+		toBlockIDExt,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	var result *cell.Cell
+
+	for _, step := range blockProof.Steps {
+		if back, ok := step.(ton.BlockLinkBackward); ok {
+			boc, err := cell.FromBOC(back.Proof)
+			if err != nil {
+				panic(err)
+			}
+			result = boc
+		}
+	}
+
+	switch outputFormat {
+	case "hex":
+		fmt.Printf("%x\n", result.ToBOC())
+
+	case "bin":
+		fallthrough
+	default:
+		os.Stdout.Write(result.ToBOC())
+	}
 }

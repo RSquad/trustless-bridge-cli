@@ -1,6 +1,4 @@
 /*
-Copyright © 2025 RSquad <hello@rsquad.io>
-
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -18,35 +16,67 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/rsquad/trustless-bridge-cli/internal/blockutils"
 	"github.com/spf13/cobra"
+	"github.com/xssnick/tonutils-go/tvm/cell"
 )
 
-// blockPruneCmd represents the pruneBlock command
 var blockPruneCmd = &cobra.Command{
 	Use:   "prune",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("pruneBlock called")
-	},
+	Short: "Prune a block to remove unnecessary data",
+	Long:  "This command returns either a pruned block with block info or with config param 34 if the provided block was a key block with the corresponding config.",
+	Run:   runBlockPrune,
 }
 
 func init() {
 	blockCmd.AddCommand(blockPruneCmd)
+	blockPruneCmd.Flags().StringP("input-file", "i", "", "Input file")
+	blockPruneCmd.Flags().BoolP("as-exotic", "e", false, "Output as exotic")
+	blockPruneCmd.Flags().StringP("output-format", "f", "bin", "Output format: bin, hex")
+	blockPruneCmd.MarkFlagRequired("input-file")
+}
 
-	// Here you will define your flags and configuration settings.
+func runBlockPrune(cmd *cobra.Command, args []string) {
+	inputFile, err := cmd.Flags().GetString("input-file")
+	if err != nil {
+		panic(err)
+	}
+	outputFormat, err := cmd.Flags().GetString("output-format")
+	if err != nil {
+		panic(err)
+	}
+	asExotic, err := cmd.Flags().GetBool("as-exotic")
+	if err != nil {
+		panic(err)
+	}
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// blockPruneCmd.PersistentFlags().String("foo", "", "A help for foo")
+	blockBOC, err := os.ReadFile(inputFile)
+	if err != nil {
+		panic(err)
+	}
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// blockPruneCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	var result *cell.Cell
+	if asExotic {
+		result, err = blockutils.BuildBlockProof(blockBOC)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		result, err = blockutils.PruneBlock(blockBOC)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	switch outputFormat {
+	case "hex":
+		fmt.Printf("%x\n", result.ToBOC())
+
+	case "bin":
+		fallthrough
+	default:
+		os.Stdout.Write(result.ToBOC())
+	}
 }
